@@ -561,10 +561,13 @@ function getContentFromItems(items) {
     });
 }
 
-function getPinterestEventName(gtmEventName) {
+function getPinterestEventName(gtmEventName, toLowerCase) {
   let pinterestEventName;
   if (data.eventName === 'inherit') {
-    pinterestEventName = EVENT_NAME_MAPPINGS[gtmEventName.trim().toLowerCase()] || gtmEventName;
+    if (toLowerCase) {
+      gtmEventName = gtmEventName.trim().toLowerCase();
+    }
+    pinterestEventName = EVENT_NAME_MAPPINGS[gtmEventName] || gtmEventName;
   } else if ( data.eventName === 'pinterestEventName') {
     pinterestEventName = data.eventNameStandard;
   }
@@ -641,7 +644,7 @@ function isLoggingEnabled() {
 // EVENT PARAMETERS
 const event = {};
 // event_name
-event.event_name = getPinterestEventName(eventModel.event_name);
+event.event_name = getPinterestEventName(eventModel.event_name, true);
 // action_source
 event.action_source = eventModel.action_source ? eventModel.action_source : DEFAULT_ACTION_SOURCE;
 // event_time
