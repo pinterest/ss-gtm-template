@@ -14,7 +14,10 @@ ___INFO___
   "version": 1,
   "securityGroups": [],
   "displayName": "Pinterest API for Conversions Tag",
-  "categories": ["CONVERSIONS", "TAG_MANAGEMENT"],
+  "categories": [
+    "CONVERSIONS",
+    "TAG_MANAGEMENT"
+  ],
   "brand": {
     "thumbnail": "data:image/png;base64,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\u003d",
     "displayName": "Pinterest",
@@ -422,14 +425,14 @@ ___TEMPLATE_PARAMETERS___
         "type": "RADIO",
         "name": "logMode",
         "radioItems": [
-        {
-          "value": "log",
-          "displayValue": "Log to console"
-        },
-        {
-          "value": "donotlog",
-          "displayValue": "Do not log"
-        }
+          {
+            "value": "log",
+            "displayValue": "Log to console"
+          },
+          {
+            "value": "donotlog",
+            "displayValue": "Do not log"
+          }
         ],
         "simpleValueType": true,
         "defaultValue": "donotlog"
@@ -561,7 +564,7 @@ function getContentFromItems(items) {
 function getPinterestEventName(gtmEventName) {
   let pinterestEventName;
   if (data.eventName === 'inherit') {
-    pinterestEventName = EVENT_NAME_MAPPINGS[gtmEventName] || gtmEventName;
+    pinterestEventName = EVENT_NAME_MAPPINGS[gtmEventName.trim().toLowerCase()] || gtmEventName;
   } else if ( data.eventName === 'pinterestEventName') {
     pinterestEventName = data.eventNameStandard;
   }
@@ -972,390 +975,390 @@ ___SERVER_PERMISSIONS___
         "versionId": "1"
       },
       "param": [
-      {
-        "key": "allowedCookies",
-        "value": {
-          "type": 2,
-          "listItem": [
-            {
-              "type": 3,
-              "mapKey": [
-                {
-                  "type": 1,
-                  "string": "name"
-                },
-                {
-                  "type": 1,
-                  "string": "domain"
-                },
-                {
-                  "type": 1,
-                  "string": "path"
-                },
-                {
-                  "type": 1,
-                  "string": "secure"
-                },
-                {
-                  "type": 1,
-                  "string": "session"
-                }
-              ],
-              "mapValue": [
-                {
-                  "type": 1,
-                  "string": "_pinterest_sess"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                }
-              ]
-            },
-            {
-              "type": 3,
-              "mapKey": [
-                {
-                  "type": 1,
-                  "string": "name"
-                },
-                {
-                  "type": 1,
-                  "string": "domain"
-                },
-                {
-                  "type": 1,
-                  "string": "path"
-                },
-                {
-                  "type": 1,
-                  "string": "secure"
-                },
-                {
-                  "type": 1,
-                  "string": "session"
-                }
-              ],
-              "mapValue": [
-                {
-                  "type": 1,
-                  "string": "_pinterest_ct"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                }
-              ]
-            },
-            {
-              "type": 3,
-              "mapKey": [
-                {
-                  "type": 1,
-                  "string": "name"
-                },
-                {
-                  "type": 1,
-                  "string": "domain"
-                },
-                {
-                  "type": 1,
-                  "string": "path"
-                },
-                {
-                  "type": 1,
-                  "string": "secure"
-                },
-                {
-                  "type": 1,
-                  "string": "session"
-                }
-              ],
-              "mapValue": [
-                {
-                  "type": 1,
-                  "string": "_pinterest_ct_rt"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                }
-              ]
-            },
-            {
-              "type": 3,
-              "mapKey": [
-                {
-                  "type": 1,
-                  "string": "name"
-                },
-                {
-                  "type": 1,
-                  "string": "domain"
-                },
-                {
-                  "type": 1,
-                  "string": "path"
-                },
-                {
-                  "type": 1,
-                  "string": "secure"
-                },
-                {
-                  "type": 1,
-                  "string": "session"
-                }
-              ],
-              "mapValue": [
-                {
-                  "type": 1,
-                  "string": "_epik"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                }
-              ]
-            },
-            {
-              "type": 3,
-              "mapKey": [
-                {
-                  "type": 1,
-                  "string": "name"
-                },
-                {
-                  "type": 1,
-                  "string": "domain"
-                },
-                {
-                  "type": 1,
-                  "string": "path"
-                },
-                {
-                  "type": 1,
-                  "string": "secure"
-                },
-                {
-                  "type": 1,
-                  "string": "session"
-                }
-              ],
-              "mapValue": [
-                {
-                  "type": 1,
-                  "string": "_derived_epik"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                }
-              ]
-            },
-            {
-              "type": 3,
-              "mapKey": [
-                {
-                  "type": 1,
-                  "string": "name"
-                },
-                {
-                  "type": 1,
-                  "string": "domain"
-                },
-                {
-                  "type": 1,
-                  "string": "path"
-                },
-                {
-                  "type": 1,
-                  "string": "secure"
-                },
-                {
-                  "type": 1,
-                  "string": "session"
-                }
-              ],
-              "mapValue": [
-                {
-                  "type": 1,
-                  "string": "_pin_unauth"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                }
-              ]
-            },
-            {
-              "type": 3,
-              "mapKey": [
-                {
-                  "type": 1,
-                  "string": "name"
-                },
-                {
-                  "type": 1,
-                  "string": "domain"
-                },
-                {
-                  "type": 1,
-                  "string": "path"
-                },
-                {
-                  "type": 1,
-                  "string": "secure"
-                },
-                {
-                  "type": 1,
-                  "string": "session"
-                }
-              ],
-              "mapValue": [
-                {
-                  "type": 1,
-                  "string": "_pinterest_ct_ua"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                }
-              ]
-            },
-            {
-              "type": 3,
-              "mapKey": [
-                {
-                  "type": 1,
-                  "string": "name"
-                },
-                {
-                  "type": 1,
-                  "string": "domain"
-                },
-                {
-                  "type": 1,
-                  "string": "path"
-                },
-                {
-                  "type": 1,
-                  "string": "secure"
-                },
-                {
-                  "type": 1,
-                  "string": "session"
-                }
-              ],
-              "mapValue": [
-                {
-                  "type": 1,
-                  "string": "_routing_id"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "*"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                },
-                {
-                  "type": 1,
-                  "string": "any"
-                }
-              ]
-            }
-          ]
+        {
+          "key": "allowedCookies",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "_pinterest_sess"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "_pinterest_ct"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "_pinterest_ct_rt"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "_epik"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "_derived_epik"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "_pin_unauth"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "_pinterest_ct_ua"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "name"
+                  },
+                  {
+                    "type": 1,
+                    "string": "domain"
+                  },
+                  {
+                    "type": 1,
+                    "string": "path"
+                  },
+                  {
+                    "type": 1,
+                    "string": "secure"
+                  },
+                  {
+                    "type": 1,
+                    "string": "session"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "_routing_id"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  },
+                  {
+                    "type": 1,
+                    "string": "any"
+                  }
+                ]
+              }
+            ]
+          }
         }
-      }
       ]
     },
     "clientAnnotations": {
@@ -1374,7 +1377,7 @@ ___SERVER_PERMISSIONS___
           "key": "environments",
           "value": {
             "type": 1,
-            "string": "debug"
+            "string": "all"
           }
         }
       ]
@@ -1390,7 +1393,7 @@ ___SERVER_PERMISSIONS___
 ___TESTS___
 
 scenarios:
-- name: on EventModel model data tag triggers to send to Pinterest Conversions API
+- name: On EventModel model data tag triggers to send to Pinterest Conversions API
   code: |-
     // Act
     runCode(testConfigurationData);
@@ -1398,7 +1401,7 @@ scenarios:
     //Assert
     assertApi('sendHttpRequest').wasCalledWith(requestEndpoint, actualSuccessCallback, requestHeaderOptions, JSON.stringify(requestData));
     assertApi('gtmOnSuccess').wasCalled();
-- name: on sending action source from Client, Tag overrides the preset configuration
+- name: On sending action source from Client, Tag overrides the preset configuration
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1409,7 +1412,7 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].action_source).isEqualTo(testConfigurationData.serverEventDataList[testConfigurationData.serverEventDataList.map(o => o.name).indexOf('action_source')].value);
-- name: on not sending action source from Client, Tag set 'web' as a default value
+- name: On not sending action source from Client, Tag set 'web' as a default value
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1421,6 +1424,17 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].action_source).isEqualTo(DEFAULT_ACTION_SOURCE);
+- name: On receiving event name, trims and lowercases it to support case insensitive
+  code: |-
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = ' Add_to_Cart ';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('add_to_cart');
 - name: On receiving event, hashes the the user_data fields if they are not already
     hashed
   code: |-
@@ -1539,6 +1553,7 @@ setup: |-
   const Math = require('Math');
   const getTimestampMillis = require('getTimestampMillis');
   const sha256Sync = require('sha256Sync');
+  const makeInteger = require('makeInteger');
   const logToConsole = require('logToConsole');
   const DEFAULT_NAMED_PARTNER = 'ss-gtm';
   const DEFAULT_ACTION_SOURCE = 'web';
@@ -1557,7 +1572,7 @@ setup: |-
   };
 
   const testData = {
-    event_name: "clientEventName",
+    event_name: "add_to_cart",
     action_source: "clientWebsite",
     event_time: "123456789",
     event_id: "eventId001",
@@ -1625,9 +1640,9 @@ setup: |-
   };
 
   const expectedEventData = {
-  "event_name": testData.event_name,
+  "event_name": testData.event_name.trim().toLowerCase(),
   "action_source": testConfigurationData.serverEventDataList[testConfigurationData.serverEventDataList.map(o => o.name).indexOf('action_source')].value,
-  "event_time": JSON.parse(testData.event_time),
+  "event_time": makeInteger(testData.event_time),
   "event_id": testData.event_id,
   "opt_out": JSON.parse(testData.opt_out),
   "user_data": {
@@ -1651,7 +1666,7 @@ setup: |-
     "value": testData.value,
     "content_ids": JSON.parse(testData.content_ids),
     "contents": JSON.parse(testData.contents),
-    "num_items": JSON.parse(testData.num_items),
+    "num_items": makeInteger(testData.num_items),
     "order_id": testData.order_id,
     "search_string": testData.search_string,
     "np": DEFAULT_NAMED_PARTNER

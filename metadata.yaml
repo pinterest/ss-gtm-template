@@ -1,7 +1,7 @@
 homepage: "https://help.pinterest.com/en/business/article/the-pinterest-api-for-conversions"
-documentation: "https://developers.pinterest.com/docs/tags/api-for-conversions-server-side-google-tag-manager/"
+documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging"
 versions:
   # Latest version
-- sha: eedf8445d532f20d44110d94c9d00149b830c1d2
+- sha: 4cbf89e7d408606cc8ba52990dddc7596bd34938
   changeNotes: Initial release for Pinterest server-side tag template.
   # Older versions

@@ -5,7 +5,7 @@ This is a Google Tag Manager server-side tag template (running on a server conta
 * [GA4 Client](https://developers.google.com/tag-manager/serverside/send-data#server-side_client_configuration)
 
 # Documentation
-Please see the documentation [here](https://developers.pinterest.com/docs/tags/api-for-conversions-server-side-google-tag-manager/).
+Please see the documentation [here](https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging).
 
 # License
 Pinterest API for Conversions Tag is licensed under LICENSE file in the root directory of this source tree.
