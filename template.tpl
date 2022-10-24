@@ -534,18 +534,18 @@ const DEFAULT_CLIENT_IP_ADDRESS = eventModel.ip_override;
 const DEFAULT_CLIENT_USER_AGENT = eventModel.user_agent;
 
 // FUNCTIONS
-function isAlreadyHashed(input){
+function isAlreadyHashed(input) {
   return input && (input.match('^[A-Fa-f0-9]{64}$') != null);
 }
 
-function hashFunction(input){
+function hashFunction(input) {
   const type = getType(input);
 
-  if(type == 'undefined' || input == 'undefined') {
+  if (type == 'undefined' || input == 'undefined') {
     return undefined;
   }
 
-  if(input == null || isAlreadyHashed(input)){
+  if (input == null || isAlreadyHashed(input)) {
     return input;
   }
 
@@ -576,11 +576,11 @@ function getPinterestEventName(gtmEventName, toLowerCase) {
 
 function convertToArrayOfStrings(input, hashIfNeeded) {
   const type = getType(input);
-  if(type == 'undefined' || input == 'undefined') {
+  if (type == 'undefined' || input == 'undefined') {
     return undefined;
   }
 
-  if(input == null){
+  if (input == null) {
     return input;
   }
 
@@ -597,11 +597,11 @@ function convertToArrayOfStrings(input, hashIfNeeded) {
 
 function getBooleanFromString(input) {
   const type = getType(input);
-  if(type == 'undefined' || input == 'undefined') {
+  if (type == 'undefined' || input == 'undefined') {
     return undefined;
   }
 
-  if(input == null){
+  if (input == null) {
     return input;
   }
 
@@ -650,17 +650,17 @@ event.action_source = eventModel.action_source ? eventModel.action_source : DEFA
 // event_time
 event.event_time = eventModel.event_time ? eventModel.event_time : DEFAULT_EVENT_TIME;
 // event_id
-if(eventModel.event_id) {
+if (eventModel.event_id) {
   event.event_id = eventModel.event_id.toString();
 }
 // event_source_url
 event.event_source_url = eventModel.event_source_url ? eventModel.event_source_url : eventModel.page_location;
 // opt_out
-if(eventModel.opt_out) {
+if (eventModel.opt_out) {
   event.opt_out = eventModel.opt_out;
 }
 // partner_name
-if(eventModel.partner_name) {
+if (eventModel.partner_name) {
   event.partner_name = eventModel.partner_name;
 }
 
@@ -669,25 +669,25 @@ const apiAccessToken = data.apiAccessToken;
 
 // USER PARAMETERS (user_data)
 event.user_data = {};
-if(eventModel.user_data != null) {
+if (eventModel.user_data != null) {
   // em
-  if(eventModel.user_data.email_address) {
+  if (eventModel.user_data.email_address) {
     event.user_data.em = eventModel.user_data.email_address;
   }
   // ph
-  if(eventModel.user_data.phone_number) {
+  if (eventModel.user_data.phone_number) {
     event.user_data.ph = eventModel.user_data.phone_number;
   }
   // ge
-  if(eventModel.user_data.gender) {
+  if (eventModel.user_data.gender) {
     event.user_data.ge = eventModel.user_data.gender;
   }
   // db
-  if(eventModel.user_data.date_of_birth) {
+  if (eventModel.user_data.date_of_birth) {
     event.user_data.db = eventModel.user_data.date_of_birth;
   }
 
-  if(eventModel.user_data.address != null) {
+  if (eventModel.user_data.address != null) {
     const addressData = eventModel.user_data.address;
     // fn
     event.user_data.fn = addressData.first_name;
@@ -703,11 +703,11 @@ if(eventModel.user_data != null) {
     event.user_data.country = addressData.country;
   }
   // hashed_maids
-  if(eventModel.user_data.hashed_maids) {
+  if (eventModel.user_data.hashed_maids) {
     event.user_data.hashed_maids = eventModel.user_data.hashed_maids;
   }
   // external_id
-  if(eventModel.user_data.external_id) {
+  if (eventModel.user_data.external_id) {
     event.user_data.external_id = eventModel.user_data.external_id;
   }
 }
@@ -720,75 +720,75 @@ event.user_data.client_user_agent = (eventModel.user_data && eventModel.user_dat
 // CUSTOM PARAMETERS (custom_data)
 event.custom_data = {};
 // currency
-if(eventModel.currency) {
+if (eventModel.currency) {
   event.custom_data.currency = eventModel.currency;
 }
 // value
-if(eventModel.value) {
+if (eventModel.value) {
   event.custom_data.value = eventModel.value;
 }
 // content_ids
-if(eventModel.content_ids) {
+if (eventModel.content_ids) {
   var content_ids_value = eventModel.content_ids;
   event.custom_data.content_ids = content_ids_value;
 }
 // contents
-if(eventModel.contents) {
+if (eventModel.contents) {
   var contents_value = eventModel.contents;
   event.custom_data.contents = JSON.parse(contents_value);
-} else if(eventModel.items) {
+} else if (eventModel.items) {
   event.custom_data.contents = getContentFromItems(eventModel.items);
 }
 // num_items
-if(eventModel.num_items) {
+if (eventModel.num_items) {
   event.custom_data.num_items = eventModel.num_items;
 }
 // order_id
-if(eventModel.order_id) {
+if (eventModel.order_id) {
   event.custom_data.order_id = eventModel.order_id;
 }
 // search_string
-if(eventModel.search_string) {
+if (eventModel.search_string) {
   event.custom_data.search_string = eventModel.search_string;
 }
 // app_id
-if(eventModel.app_id) {
+if (eventModel.app_id) {
   event.app_id = eventModel.app_id;
 }
 // app_name
-if(eventModel.app_name) {
+if (eventModel.app_name) {
   event.app_name = eventModel.app_name;
 }
 // app_version
-if(eventModel.app_version) {
+if (eventModel.app_version) {
   event.app_version = eventModel.app_version;
 }
 // device_brand
-if(eventModel.device_brand) {
+if (eventModel.device_brand) {
   event.device_brand = eventModel.device_brand;
 }
 // device_carrier
-if(eventModel.device_carrier) {
+if (eventModel.device_carrier) {
   event.device_carrier = eventModel.device_carrier;
 }
 // device_model
-if(eventModel.device_model) {
+if (eventModel.device_model) {
   event.device_model = eventModel.device_model;
 }
 // device_type
-if(eventModel.device_type) {
+if (eventModel.device_type) {
   event.device_type = eventModel.device_type;
 }
 // os_version
-if(eventModel.os_version) {
+if (eventModel.os_version) {
   event.os_version = eventModel.os_version;
 }
 // wifi
-if(eventModel.wifi) {
+if (eventModel.wifi) {
   event.wifi = eventModel.wifi;
 }
 // language
-if(eventModel.language) {
+if (eventModel.language) {
   event.language = eventModel.language.slice(0,2);
 }
 
