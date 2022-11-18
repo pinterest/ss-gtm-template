@@ -456,6 +456,7 @@ const getCookieValues = require('getCookieValues');
 const setCookie = require('setCookie');
 const parseUrl = require('parseUrl');
 const makeInteger = require('makeInteger');
+const makeString = require('makeString');
 const logToConsole = require('logToConsole');
 
 
@@ -555,7 +556,7 @@ function hashFunction(input) {
 function getContentFromItems(items) {
     return items.map(item => {
         return {
-            "item_price": item.price,
+            "item_price": makeString(item.price),
             "quantity": makeInteger(item.quantity),
         };
     });
@@ -1438,7 +1439,7 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('add_to_cart');
-- name: On receiving event, hashes the the user_data fields if they are not already
+- name: On receiving event, hashes the user_data fields if they are not already
     hashed
   code: |-
     // Un-hashed raw email_address from Common Event Schema is hashed before posted to Conversions API.
@@ -1505,6 +1506,40 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].user_data.em).isUndefined();
+- name: On receiving items from GA4, process it as a contents
+  code: |
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = null;
+      inputEventModel.items = [{price: 12.4, quantity: 2}];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"12.4","quantity":2}]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = undefined;
+      inputEventModel.items = [{"price": "12.4", quantity: 2}];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"12.4","quantity":2}]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = undefined;
+      inputEventModel.items = [{price: 0, "quantity": "2"}];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"0","quantity":2}]);
 - name: When address is missing it skips parsing the nested fields
   code: |
     mock('getAllEventData', () => {
@@ -1524,7 +1559,7 @@ scenarios:
     assertThat(JSON.parse(httpBody).data[0].user_data.st).isUndefined();
     assertThat(JSON.parse(httpBody).data[0].user_data.zp).isUndefined();
     assertThat(JSON.parse(httpBody).data[0].user_data.country).isUndefined();
-- name: When parameters are undefined skip parsing
+- name: When parameters are undefined, then skip parsing them
   code: |
     mock('getAllEventData', () => {
       inputEventModel.user_data = {};
@@ -1707,4 +1742,4 @@ Jian Li <jianli@pinterest.com>
 Mirko Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 10/24/2022, 1:20:00 PM
+Updated on 11/18/2022, 8:41:00 PM
