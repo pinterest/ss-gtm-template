@@ -509,6 +509,7 @@ const PARAM_VALUE_FORMAT = {
   "num_items": "integer",
   "opt_out": "boolean",
   "wifi": "boolean",
+  "value": "string",
   "em": "array-hashed",
   "ph": "array-hashed",
   "ge": "array-hashed",
@@ -630,6 +631,7 @@ function overrideEventData(event, data) {
 function formatDataTypes(object) {
   for (let key in object) {
     if (object.hasOwnProperty(key)) {
+        if (PARAM_VALUE_FORMAT[key] === 'string') object[key] = makeString(object[key]);
         if (PARAM_VALUE_FORMAT[key] === 'integer') object[key] = makeInteger(object[key]);
         if (PARAM_VALUE_FORMAT[key] === 'boolean') object[key] = getBooleanFromString(object[key]);
         if (PARAM_VALUE_FORMAT[key] === 'array') object[key] = convertToArrayOfStrings(object[key], false);
@@ -1506,6 +1508,37 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].user_data.em).isUndefined();
+- name: On receiving 'value' as number, convert it to string format
+  code: |
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.value = 12.45;
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.value).isEqualTo("12.45");
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.value = '12.45';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.value).isEqualTo("12.45");
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.value = 12;
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.value).isEqualTo("12");
 - name: On receiving items from GA4, process it as a contents
   code: |
     // Act
@@ -1540,6 +1573,17 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"0","quantity":2}]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = undefined;
+      inputEventModel.items = [{price: 0, "quantity": "2"},{price: 12.5, "quantity": "3"}];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"0","quantity":2},{"item_price":"12.5","quantity":3}]);
 - name: When address is missing it skips parsing the nested fields
   code: |
     mock('getAllEventData', () => {
@@ -1739,7 +1783,7 @@ Points of Contact:
 
 Yuchen Mou <ymou@pinterest.com>
 Jian Li <jianli@pinterest.com>
-Mirko Rodriguez Mallma <mrodriguezmallma@pinterest.com>
+Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 11/18/2022, 8:41:00 PM
+Updated on 11/23/2022, 3:17:00 PM
