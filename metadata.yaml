@@ -2,8 +2,10 @@ homepage: "https://help.pinterest.com/en/business/article/the-pinterest-api-for-
 documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging"
 versions:
   # Latest version
+- sha: 351a5ff980ca01c9c1b4303a8917af9033ef727f
+  changeNotes: Ensure the parameters' values are sent with the right format ('value': String).
+  # Older versions
 - sha: d7ce24962113307cdd4bd785cef40aa0b45b0554
   changeNotes: Add support for getting contents from GA4 items.
-  # Older versions
 - sha: bb54ce28a0a8f177284265d7e4a8c2caa3b951bd
   changeNotes: Initial release for Pinterest server-side tag template.
