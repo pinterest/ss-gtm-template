@@ -3,7 +3,7 @@ documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-
 versions:
   # Latest version
 - sha: 351a5ff980ca01c9c1b4303a8917af9033ef727f
-  changeNotes: Ensure the parameters' values are sent with the right format ('value': String).
+  changeNotes: Ensure the parameters values are sent with the right format.
   # Older versions
 - sha: d7ce24962113307cdd4bd785cef40aa0b45b0554
   changeNotes: Add support for getting contents from GA4 items.
