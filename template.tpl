@@ -392,6 +392,10 @@ ___TEMPLATE_PARAMETERS___
               {
                 "value": "search_string",
                 "displayValue": "Search string"
+              },
+              {
+                "value": "opt_out_type",
+                "displayValue": "OptOutType"
               }
             ]
           },
@@ -753,6 +757,10 @@ if (eventModel.order_id) {
 // search_string
 if (eventModel.search_string) {
   event.custom_data.search_string = eventModel.search_string;
+}
+// opt_out_type
+if (eventModel.opt_out_type) {
+  event.custom_data.opt_out_type = eventModel.opt_out_type;
 }
 // app_id
 if (eventModel.app_id) {
@@ -1683,6 +1691,7 @@ setup: |-
     num_items: "5",
     "order_id": "order_id",
     "search_string": "shoes",
+    "opt_out_type": "LDP",
     language: "en"
   };
 
@@ -1718,6 +1727,7 @@ setup: |-
     "num_items": testData.num_items,
     "order_id": testData.order_id,
     "search_string": testData.search_string,
+    "opt_out_type": testData.opt_out_type,
     "language": testData.language
   };
 
@@ -1751,6 +1761,7 @@ setup: |-
     "num_items": makeInteger(testData.num_items),
     "order_id": testData.order_id,
     "search_string": testData.search_string,
+    "opt_out_type": testData.opt_out_type,
     "np": DEFAULT_NAMED_PARTNER
   },
   "language": testData.language
@@ -1786,4 +1797,4 @@ Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 11/23/2022, 3:17:00 PM
+Updated on 12/08/2022, 9:00:00 AM
