@@ -2,9 +2,11 @@ homepage: "https://help.pinterest.com/en/business/article/the-pinterest-api-for-
 documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging"
 versions:
   # Latest version
+- sha: 5cd3b83a1cdf40d3c32dbdf1cbbdcebcb0d9af24
+  changeNotes: Add support for external_id and click_id.
+  # Older versions
 - sha: 6ecb32cb8d8b518326b4f2422ef53591a7de5980
   changeNotes: Add support for param opt_out_type.
-  # Older versions
 - sha: 9d3ce6de6f1ff53e09204a6efb2eeb1570a336bb
   changeNotes: Ensure the parameters values are sent with the right format.
 - sha: d7ce24962113307cdd4bd785cef40aa0b45b0554
