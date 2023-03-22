@@ -322,6 +322,14 @@ ___TEMPLATE_PARAMETERS___
               {
                 "value": "client_user_agent",
                 "displayValue": "Client user agent"
+              },
+              {
+                "value": "external_id",
+                "displayValue": "External Id"
+              },
+              {
+                "value": "click_id",
+                "displayValue": "Click Id"
               }
             ]
           },
@@ -510,6 +518,7 @@ const EVENT_NAME_MAPPINGS = {
 
 const PARAM_VALUE_FORMAT = {
   "event_time": "integer",
+  "event_id": "string",
   "num_items": "integer",
   "opt_out": "boolean",
   "wifi": "boolean",
@@ -658,7 +667,7 @@ event.action_source = eventModel.action_source ? eventModel.action_source : DEFA
 event.event_time = eventModel.event_time ? eventModel.event_time : DEFAULT_EVENT_TIME;
 // event_id
 if (eventModel.event_id) {
-  event.event_id = eventModel.event_id.toString();
+  event.event_id = eventModel.event_id;
 }
 // event_source_url
 event.event_source_url = eventModel.event_source_url ? eventModel.event_source_url : eventModel.page_location;
@@ -716,6 +725,10 @@ if (eventModel.user_data != null) {
   // external_id
   if (eventModel.user_data.external_id) {
     event.user_data.external_id = eventModel.user_data.external_id;
+  }
+  // click_id
+  if (eventModel.user_data.click_id) {
+    event.user_data.click_id = eventModel.user_data.click_id;
   }
 }
 
@@ -1682,6 +1695,7 @@ setup: |-
       external_id: "user123",
       ip_address: "1.2.3.4",
       user_agent: "Test_UA",
+      click_id: "dj0yJnU9b2JDcFFHekV4SHJNcmVrbFBkUEdqakh0akdUT1VjVVUmcD0yJm49cnNBQ3F2Q2dOVDBXWWhkWklrUGxBUSZ0PUFBQUFBR1BaY3Bv"
     },
     //custom_data
     currency: "USD",
@@ -1715,7 +1729,8 @@ setup: |-
         "country": testData.user_data.country
       },
       "hashed_maids": testData.user_data.hashed_maids,
-      "external_id": testData.user_data.external_id
+      "external_id": testData.user_data.external_id,
+      "click_id": testData.user_data.click_id
     },
     "ip_override": testData.user_data.ip_address,
     "user_agent": testData.user_data.user_agent,
@@ -1750,6 +1765,7 @@ setup: |-
     "country": hashFunction(testData.user_data.country).split(),
     "hashed_maids": hashFunction(testData.user_data.hashed_maids).split(),
     "external_id": hashFunction(testData.user_data.external_id).split(),
+    "click_id": testData.user_data.click_id,
     "client_ip_address": testData.user_data.ip_address,
     "client_user_agent": testData.user_data.user_agent,
   },
@@ -1797,4 +1813,4 @@ Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 12/08/2022, 9:00:00 AM
+Updated on 03/21/2023, 4:00:00 PM
