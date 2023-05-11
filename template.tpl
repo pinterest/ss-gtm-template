@@ -512,7 +512,7 @@ const EVENT_NAME_MAPPINGS = {
   "select_item": "custom",
   "select_promotion": "custom",
   "view_cart": "custom",
-  "view_item": "custom",
+  "view_item": "page_visit",
   "view_promotion": "custom"
 };
 
@@ -576,6 +576,12 @@ function getContentFromItems(items) {
     });
 }
 
+function getContentIdsFromItems(items) {
+    return JSON.stringify(items.map(item => {
+        return makeString((item.item_id) ? item.item_id : item.item_name);
+    }));
+}
+
 function getPinterestEventName(gtmEventName, toLowerCase) {
   let pinterestEventName;
   if (data.eventName === 'inherit') {
@@ -589,6 +595,10 @@ function getPinterestEventName(gtmEventName, toLowerCase) {
   return pinterestEventName;
 }
 
+function replaceAll(string, search, replace) {
+  return string.split(search).join(replace);
+}
+
 function convertToArrayOfStrings(input, hashIfNeeded) {
   const type = getType(input);
   if (type == 'undefined' || input == 'undefined') {
@@ -600,7 +610,7 @@ function convertToArrayOfStrings(input, hashIfNeeded) {
   }
 
   let value = (input.charAt(0) === '[' && input.charAt(input.length - 1) === ']' &&
-               input.charAt(1) === '\"' && input.charAt(input.length - 2) === '\"') ? JSON.parse(input) : input.toString().replace('[','').replace(']','').split(',');
+               input.charAt(1) === '\"' && input.charAt(input.length - 2) === '\"') ? JSON.parse(input) : replaceAll(input.toString().replace('[','').replace(']',''),'\"','').split(',');
 
   return value.map(item => {
     if (hashIfNeeded === true) {
@@ -645,7 +655,7 @@ function formatDataTypes(object) {
   for (let key in object) {
     if (object.hasOwnProperty(key)) {
         if (PARAM_VALUE_FORMAT[key] === 'string') object[key] = makeString(object[key]);
-        if (PARAM_VALUE_FORMAT[key] === 'integer') object[key] = makeInteger(object[key]);
+        if (PARAM_VALUE_FORMAT[key] === 'integer') object[key] = makeInteger(JSON.parse(object[key]));
         if (PARAM_VALUE_FORMAT[key] === 'boolean') object[key] = getBooleanFromString(object[key]);
         if (PARAM_VALUE_FORMAT[key] === 'array') object[key] = convertToArrayOfStrings(object[key], false);
         if (PARAM_VALUE_FORMAT[key] === 'array-hashed') object[key] = convertToArrayOfStrings(object[key], true);
@@ -751,6 +761,8 @@ if (eventModel.value) {
 if (eventModel.content_ids) {
   var content_ids_value = eventModel.content_ids;
   event.custom_data.content_ids = content_ids_value;
+} else if (eventModel.items) {
+  event.custom_data.content_ids = getContentIdsFromItems(eventModel.items);
 }
 // contents
 if (eventModel.contents) {
@@ -762,6 +774,8 @@ if (eventModel.contents) {
 // num_items
 if (eventModel.num_items) {
   event.custom_data.num_items = eventModel.num_items;
+} else if (eventModel.items) {
+  event.custom_data.num_items = eventModel.items.length;
 }
 // order_id
 if (eventModel.order_id) {
@@ -1560,7 +1574,7 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.value).isEqualTo("12");
-- name: On receiving items from GA4, process it as a contents
+- name: On receiving items from GA4, with the contents info, process it as a contents
   code: |
     // Act
     mock('getAllEventData', () => {
@@ -1605,6 +1619,49 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"0","quantity":2},{"item_price":"12.5","quantity":3}]);
+- name: On receiving items from GA4, with the full items info, tag parses them into Conversions API schema
+  code: |+
+    // Act
+    let items = [
+      {
+        item_id: '1',
+        item_name: 'item_1',
+        quantity: 5,
+        price: 123.45,
+        item_category: 'cat_1',
+        item_brand: 'brand_1',
+      },
+      {
+        item_id: '2',
+        item_name: 'item_2',
+        quantity: 10,
+        price: 123.45,
+        item_category: 'cat_2',
+        item_brand: 'brand_2',
+      }
+    ];
+    mock('getAllEventData', () => {
+      inputEventModel.contents = null;
+      inputEventModel.content_ids = null;
+      inputEventModel.num_items = null;
+      inputEventModel.items = items;
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    let actual_contents = JSON.parse(httpBody).data[0].custom_data.contents;
+    let actual_content_ids = JSON.parse(httpBody).data[0].custom_data.content_ids;
+    for( var i = 0; i < items.length; i++) {
+      // contents
+      assertThat(actual_contents[i].item_price).isEqualTo(makeString(items[i].price));
+      assertThat(actual_contents[i].quantity).isEqualTo(makeInteger(items[i].quantity));
+      // content_ids
+      assertThat(actual_content_ids[i]).isEqualTo(makeString((items[i].item_id) ? items[i].item_id : items[i].item_name));
+    }
+    // num_items
+    let actual_num_items = JSON.parse(httpBody).data[0].custom_data.num_items;
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents.length).isEqualTo(items.length);
 - name: When address is missing it skips parsing the nested fields
   code: |
     mock('getAllEventData', () => {
@@ -1657,6 +1714,7 @@ setup: |-
   const getTimestampMillis = require('getTimestampMillis');
   const sha256Sync = require('sha256Sync');
   const makeInteger = require('makeInteger');
+  const makeString = require('makeString');
   const logToConsole = require('logToConsole');
   const DEFAULT_NAMED_PARTNER = 'ss-gtm';
   const DEFAULT_ACTION_SOURCE = 'web';
@@ -1676,8 +1734,8 @@ setup: |-
 
   const testData = {
     event_name: "add_to_cart",
-    action_source: "clientWebsite",
-    event_time: "123456789",
+    action_source: "web",
+    event_time: "1679414563",
     event_id: "eventId001",
     opt_out: "true",
     user_data: {
@@ -1685,15 +1743,15 @@ setup: |-
       phone_number: "123456789",
       gender: "m",
       date_of_birth: "19910526",
-      first_name: "foo",
-      last_name: "bar",
+      first_name: "mirko",
+      last_name: "rodriguez",
       city: "menlopark",
       state: "ca",
       country: "us",
-      hashed_maids: "maid_id",
+      hashed_maids: "EA7583CD-A667-48BC-B806-42ECB2B48606",
       zip: "12345",
-      external_id: "user123",
-      ip_address: "1.2.3.4",
+      external_id: "cdda802e-fb9c-47ad-9866-0794d394c912",
+      ip_address: "216.3.128.12",
       user_agent: "Test_UA",
       click_id: "dj0yJnU9b2JDcFFHekV4SHJNcmVrbFBkUEdqakh0akdUT1VjVVUmcD0yJm49cnNBQ3F2Q2dOVDBXWWhkWklrUGxBUSZ0PUFBQUFBR1BaY3Bv"
     },
@@ -1813,4 +1871,4 @@ Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 03/21/2023, 4:00:00 PM
+Updated on 05/10/2023, 12:00:00 PM
