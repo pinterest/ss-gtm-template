@@ -2,7 +2,7 @@ homepage: "https://help.pinterest.com/en/business/article/the-pinterest-api-for-
 documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging"
 versions:
   # Latest version
-  - sha: cc476becbd6be1d264ffc7c4d26bb24949ec4b51
+- sha: cc476becbd6be1d264ffc7c4d26bb24949ec4b51
   changeNotes: Process view_item and get params from GA4.
   # Older versions
 - sha: 5cd3b83a1cdf40d3c32dbdf1cbbdcebcb0d9af24
