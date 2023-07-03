@@ -382,6 +382,18 @@ ___TEMPLATE_PARAMETERS___
                 "displayValue": "Value"
               },
               {
+                "value": "content_name",
+                "displayValue": "Content Name"
+              },
+              {
+                "value": "content_category",
+                "displayValue": "Content Category"
+              },
+              {
+                "value": "content_brand",
+                "displayValue": "Content Brand"
+              },
+              {
                 "value": "content_ids",
                 "displayValue": "Content IDs"
               },
@@ -535,7 +547,8 @@ const PARAM_VALUE_FORMAT = {
   "country": "array-hashed",
   "hashed_maids": "array-hashed",
   "external_id": "array-hashed",
-  "content_ids": "array"
+  "content_ids": "array",
+  "contents": "json"
 };
 
 const DEFAULT_NAMED_PARTNER = 'ss-gtm';
@@ -567,9 +580,10 @@ function hashFunction(input) {
   return sha256Sync(input.trim().toLowerCase(), {outputEncoding: 'hex'});
 }
 
-function getContentFromItems(items) {
+function getContentsFromItems(items) {
     return items.map(item => {
         return {
+            "id": makeString((item.item_id) ? item.item_id : item.item_name),
             "item_price": makeString(item.price),
             "quantity": makeInteger(item.quantity),
         };
@@ -600,19 +614,27 @@ function replaceAll(string, search, replace) {
 }
 
 function convertToArrayOfStrings(input, hashIfNeeded) {
+  if (input == null) {
+    return input;
+  }
+
   const type = getType(input);
   if (type == 'undefined' || input == 'undefined') {
     return undefined;
   }
 
-  if (input == null) {
-    return input;
+  let arrayOfStrings = [];
+  if (type == 'array') {
+    arrayOfStrings = input.map((i) => makeString(i));
+  }
+  if (type == 'string') {
+    let arrayOfObjs = replaceAll(input.toString().replace('[','').replace(']',''),'\"','').split(',');
+    arrayOfStrings = arrayOfObjs.map((i) => makeString(i).trim()).filter(function(e) {
+      return !(!e || e.length === 0 );
+    });
   }
 
-  let value = (input.charAt(0) === '[' && input.charAt(input.length - 1) === ']' &&
-               input.charAt(1) === '\"' && input.charAt(input.length - 2) === '\"') ? JSON.parse(input) : replaceAll(input.toString().replace('[','').replace(']',''),'\"','').split(',');
-
-  return value.map(item => {
+  return arrayOfStrings.map(item => {
     if (hashIfNeeded === true) {
       return hashFunction(item);
     }
@@ -631,6 +653,20 @@ function getBooleanFromString(input) {
   }
 
   return (typeof input === 'string' && (input.toLowerCase() === "true" || input.toLowerCase() === "false")) ? JSON.parse(input.toLowerCase()) : input;
+}
+
+function getJsonFromString(input) {
+  const type = getType(input);
+  if (type == 'undefined' || input == 'undefined') {
+    return undefined;
+  }
+
+  if (input == null) {
+    return input;
+  }
+
+  return (typeof input === 'string' && input.charAt(0) === '[' && input.charAt(input.length - 1) === ']' 
+          && input.charAt(1) === '{' && input.charAt(input.length - 2) === '}') ? JSON.parse(input) : input;
 }
 
 function overrideEventData(event, data) {
@@ -659,6 +695,7 @@ function formatDataTypes(object) {
         if (PARAM_VALUE_FORMAT[key] === 'boolean') object[key] = getBooleanFromString(object[key]);
         if (PARAM_VALUE_FORMAT[key] === 'array') object[key] = convertToArrayOfStrings(object[key], false);
         if (PARAM_VALUE_FORMAT[key] === 'array-hashed') object[key] = convertToArrayOfStrings(object[key], true);
+        if (PARAM_VALUE_FORMAT[key] === 'json') object[key] = getJsonFromString(object[key]);
     }
   }
 }
@@ -757,19 +794,29 @@ if (eventModel.currency) {
 if (eventModel.value) {
   event.custom_data.value = eventModel.value;
 }
+// content_name
+if (eventModel.content_name) {
+  event.custom_data.content_name = eventModel.content_name;
+}
+// content_category
+if (eventModel.content_category) {
+  event.custom_data.content_category = eventModel.content_category;
+}
+// content_brand
+if (eventModel.content_brand) {
+  event.custom_data.content_brand = eventModel.content_brand;
+}
 // content_ids
 if (eventModel.content_ids) {
-  var content_ids_value = eventModel.content_ids;
-  event.custom_data.content_ids = content_ids_value;
+  event.custom_data.content_ids = eventModel.content_ids;
 } else if (eventModel.items) {
   event.custom_data.content_ids = getContentIdsFromItems(eventModel.items);
 }
 // contents
 if (eventModel.contents) {
-  var contents_value = eventModel.contents;
-  event.custom_data.contents = JSON.parse(contents_value);
+  event.custom_data.contents = eventModel.contents;
 } else if (eventModel.items) {
-  event.custom_data.contents = getContentFromItems(eventModel.items);
+  event.custom_data.contents = getContentsFromItems(eventModel.items);
 }
 // num_items
 if (eventModel.num_items) {
@@ -1434,7 +1481,7 @@ ___SERVER_PERMISSIONS___
 ___TESTS___
 
 scenarios:
-- name: On EventModel model data tag triggers to send to Pinterest Conversions API
+- name: On EventModel model data tag triggers to send to Pinterest Conversions API (cAPI)
   code: |-
     // Act
     runCode(testConfigurationData);
@@ -1442,7 +1489,7 @@ scenarios:
     //Assert
     assertApi('sendHttpRequest').wasCalledWith(requestEndpoint, actualSuccessCallback, requestHeaderOptions, JSON.stringify(requestData));
     assertApi('gtmOnSuccess').wasCalled();
-- name: On sending action source from Client, Tag overrides the preset configuration
+- name: On sending 'action_source' from Client, Tag overrides the preset configuration from server side
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1453,7 +1500,7 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].action_source).isEqualTo(testConfigurationData.serverEventDataList[testConfigurationData.serverEventDataList.map(o => o.name).indexOf('action_source')].value);
-- name: On not sending action source from Client, Tag set 'web' as a default value
+- name: On not sending 'action_source' from Client, Tag set 'web' as a default value for cAPI
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1465,7 +1512,7 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].action_source).isEqualTo(DEFAULT_ACTION_SOURCE);
-- name: On receiving event name, trims and lowercases it to support case insensitive
+- name: On receiving 'event_name', Tag trims and lowercases it to support case insensitive
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1476,35 +1523,79 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('add_to_cart');
-- name: On receiving event, hashes the user_data fields if they are not already
-    hashed
+- name: On receiving 'event_name', Tag tries to map it to a standard event name
+  code: |-
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = 'purchase';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('checkout');
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = ' PAGE_VIEW';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('page_visit');
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = 'view_cart';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('custom');
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = ' ANY_other_Name ';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('any_other_name');
+- name: On receiving event data, Tag hashes the 'user_data' fields if they are not already hashed
   code: |-
     // Un-hashed raw email_address from Common Event Schema is hashed before posted to Conversions API.
 
     // Act
     mock('getAllEventData', () => {
       inputEventModel.user_data = {};
-      inputEventModel.user_data.email_address = 'foo@bar.com';
-      inputEventModel.user_data.phone_number = '1234567890';
+      inputEventModel.user_data.email_address = '[foo1@bar.com,foo2@bar.com]';
+      inputEventModel.user_data.phone_number = 'c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646';
+      inputEventModel.user_data.gender = " m ";
+      inputEventModel.user_data.hashed_maids = ["maid_01", "6ab15588d5535128752e63d57e2e216234e9633c6397cdcc98f4976b53d2a381"];
       inputEventModel.user_data.address = {};
       inputEventModel.user_data.address.first_name = 'Foo';
-      inputEventModel.user_data.address.last_name = 'Bar';
+      inputEventModel.user_data.address.last_name = "[Bar]";
       inputEventModel.user_data.address.city = 'Menlo Park';
       inputEventModel.user_data.address.region = 'ca';
-      inputEventModel.user_data.address.postal_code = '12345';
-      inputEventModel.user_data.address.country = 'usa';
+      inputEventModel.user_data.address.postal_code = '5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5';
+      inputEventModel.user_data.address.country = ['usa'];
       return inputEventModel;
     });
     runCode(testConfigurationData);
 
     //Assert
-    assertThat(JSON.parse(httpBody).data[0].user_data.em).isEqualTo(hashFunction('foo@bar.com').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(hashFunction('1234567890').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.em).isEqualTo([hashFunction('foo1@bar.com'),hashFunction('foo2@bar.com')]);
+    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(["c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646"]);
+    assertThat(JSON.parse(httpBody).data[0].user_data.ge).isEqualTo(hashFunction('m').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.hashed_maids).isEqualTo([hashFunction('maid_01'),"6ab15588d5535128752e63d57e2e216234e9633c6397cdcc98f4976b53d2a381"]);
     assertThat(JSON.parse(httpBody).data[0].user_data.fn).isEqualTo(hashFunction('Foo').split());
     assertThat(JSON.parse(httpBody).data[0].user_data.ln).isEqualTo(hashFunction('Bar').split());
     assertThat(JSON.parse(httpBody).data[0].user_data.ct).isEqualTo(hashFunction('Menlo Park').split());
     assertThat(JSON.parse(httpBody).data[0].user_data.st).isEqualTo(hashFunction('ca').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isEqualTo(hashFunction('12345').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isEqualTo(["5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5"]);
     assertThat(JSON.parse(httpBody).data[0].user_data.country).isEqualTo(hashFunction('usa').split());
 
     // Un-hashed raw email_address in mixed-case is converted to lowercase, hashed and posted to Conversions API.
@@ -1543,7 +1634,52 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].user_data.em).isUndefined();
-- name: On receiving 'value' as number, convert it to string format
+- name: When some 'user_data' params are missing, Tag skips parsing the nested fields
+  code: |
+    mock('getAllEventData', () => {
+      inputEventModel.user_data = {};
+      inputEventModel.user_data.email_address = 'foo@bar.com';
+      inputEventModel.user_data.phone_number = '1234567890';
+      return inputEventModel;
+    });
+
+    runCode(testConfigurationData);
+
+    assertThat(JSON.parse(httpBody).data[0].user_data.em).isEqualTo(hashFunction('foo@bar.com').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(hashFunction('1234567890').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.fn).isUndefined();
+    assertThat(JSON.parse(httpBody).data[0].user_data.ln).isUndefined();
+    assertThat(JSON.parse(httpBody).data[0].user_data.ct).isUndefined();
+    assertThat(JSON.parse(httpBody).data[0].user_data.st).isUndefined();
+    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isUndefined();
+    assertThat(JSON.parse(httpBody).data[0].user_data.country).isUndefined();
+- name: When some 'user_data' params are undefined, Tag skips parsing them
+  code: |
+    mock('getAllEventData', () => {
+      inputEventModel.user_data = {};
+      inputEventModel.user_data.email_address = undefined;
+      inputEventModel.user_data.phone_number = '1234567890';
+      inputEventModel.user_data.address = {};
+      inputEventModel.user_data.address.first_name = 'John';
+      inputEventModel.user_data.address.last_name = undefined;
+      inputEventModel.user_data.address.city = 'menlopark';
+      inputEventModel.user_data.address.region = 'ca';
+      inputEventModel.user_data.address.postal_code = '94025';
+      inputEventModel.user_data.address.country = 'usa';
+      return inputEventModel;
+    });
+
+    runCode(testConfigurationData);
+
+    assertThat(JSON.parse(httpBody).data[0].user_data.em).isUndefined();
+    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(hashFunction('1234567890').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.fn).isEqualTo(hashFunction('John').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.ln).isUndefined();
+    assertThat(JSON.parse(httpBody).data[0].user_data.ct).isEqualTo(hashFunction('menlopark').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.st).isEqualTo(hashFunction('ca').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isEqualTo(hashFunction('94025').split());
+    assertThat(JSON.parse(httpBody).data[0].user_data.country).isEqualTo(hashFunction('usa').split());
+- name: On receiving 'value' as number, Tag converts it to String format
   code: |
     // Act
     mock('getAllEventData', () => {
@@ -1574,52 +1710,235 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.value).isEqualTo("12");
-- name: On receiving items from GA4, with the contents info, process it as a contents
+- name: On receiving 'content_ids' with different formats, Tag transforms it to an Array of Strings
+  code: |-
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = ["id_1","id_2"];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["id_1","id_2"]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = [1, 2, 3];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","2","3"]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = ["1", 2.5, "3.10"];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","2.5","3.10"]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = "[1 , 2.5, 3]";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","2.5","3"]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = "[\"1\" , 2.5, \"3\"]";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","2.5","3"]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = "[1 , , 3]";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","3"]);
+    
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = "  ";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo([]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = "";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isUndefined();
+
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.content_ids = null;
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isUndefined();
+- name: On receiving 'contents' with different formats, Tag transforms it to a valid Json object if feasible
+  code: |-
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = [{"id":"value"}];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"value"}]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = ["id_1","id_2"];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo(["id_1","id_2"]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = "[\"id_1\",\"id_2\"]";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo("[\"id_1\",\"id_2\"]");
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = "[{\"id_1\":\"value_1\"},{\"id_2\":\"value_2\"}]";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id_1":"value_1"},{"id_2":"value_2"}]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = [{"id":"id01","item_price":"12.4","quantity":12}];
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"id01","item_price":"12.4","quantity":12}]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = "[{\"id\":\"id01\",\"item_price\":\"12.4\",\"quantity\":12}]";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"id01","item_price":"12.4","quantity":12}]);
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = "";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isUndefined();
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = null;
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isUndefined();
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.contents = " ";
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo(" ");
+- name: On receiving 'items' from GA4 event, Tag parses them into 'contents' for cAPI
   code: |
     // Act
     mock('getAllEventData', () => {
       inputEventModel.contents = null;
-      inputEventModel.items = [{price: 12.4, quantity: 2}];
+      inputEventModel.items = [{item_id: 10, price: 12.4, quantity: 2}];
       return inputEventModel;
     });
     runCode(testConfigurationData);
 
     //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"12.4","quantity":2}]);
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"10","item_price":"12.4","quantity":2}]);
 
     // Act
     mock('getAllEventData', () => {
       inputEventModel.contents = undefined;
-      inputEventModel.items = [{"price": "12.4", quantity: 2}];
+      inputEventModel.items = [{item_id: "id-01", "price": "12.4", quantity: 2}];
       return inputEventModel;
     });
     runCode(testConfigurationData);
 
     //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"12.4","quantity":2}]);
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"id-01","item_price":"12.4","quantity":2}]);
 
     // Act
     mock('getAllEventData', () => {
       inputEventModel.contents = undefined;
-      inputEventModel.items = [{price: 0, "quantity": "2"}];
+      inputEventModel.items = [{item_name: "shoes", price: 0, "quantity": "2"}];
       return inputEventModel;
     });
     runCode(testConfigurationData);
 
     //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"0","quantity":2}]);
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"shoes","item_price":"0","quantity":2}]);
 
     // Act
     mock('getAllEventData', () => {
       inputEventModel.contents = undefined;
-      inputEventModel.items = [{price: 0, "quantity": "2"},{price: 12.5, "quantity": "3"}];
+      inputEventModel.items = [{item_id: 5, item_name: "shoes", price: 0, "quantity": "2"},{item_name: "item_01", price: 12.5, "quantity": "3"}];
       return inputEventModel;
     });
     runCode(testConfigurationData);
 
     //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"item_price":"0","quantity":2},{"item_price":"12.5","quantity":3}]);
-- name: On receiving items from GA4, with the full items info, tag parses them into Conversions API schema
+    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"5","item_price":"0","quantity":2},{"id":"item_01","item_price":"12.5","quantity":3}]);
+- name: On receiving 'items' from GA4 event, Tag parses them into 'content_ids', 'contents' and 'num_items' for cAPI
   code: |+
     // Act
     let items = [
@@ -1654,6 +1973,7 @@ scenarios:
     let actual_content_ids = JSON.parse(httpBody).data[0].custom_data.content_ids;
     for( var i = 0; i < items.length; i++) {
       // contents
+      assertThat(actual_contents[i].id).isEqualTo(makeString(items[i].item_id));
       assertThat(actual_contents[i].item_price).isEqualTo(makeString(items[i].price));
       assertThat(actual_contents[i].quantity).isEqualTo(makeInteger(items[i].quantity));
       // content_ids
@@ -1662,51 +1982,6 @@ scenarios:
     // num_items
     let actual_num_items = JSON.parse(httpBody).data[0].custom_data.num_items;
     assertThat(JSON.parse(httpBody).data[0].custom_data.contents.length).isEqualTo(items.length);
-- name: When address is missing it skips parsing the nested fields
-  code: |
-    mock('getAllEventData', () => {
-      inputEventModel.user_data = {};
-      inputEventModel.user_data.email_address = 'foo@bar.com';
-      inputEventModel.user_data.phone_number = '1234567890';
-      return inputEventModel;
-    });
-
-    runCode(testConfigurationData);
-
-    assertThat(JSON.parse(httpBody).data[0].user_data.em).isEqualTo(hashFunction('foo@bar.com').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(hashFunction('1234567890').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.fn).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.ln).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.ct).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.st).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.country).isUndefined();
-- name: When parameters are undefined, then skip parsing them
-  code: |
-    mock('getAllEventData', () => {
-      inputEventModel.user_data = {};
-      inputEventModel.user_data.email_address = undefined;
-      inputEventModel.user_data.phone_number = '1234567890';
-      inputEventModel.user_data.address = {};
-      inputEventModel.user_data.address.first_name = 'John';
-      inputEventModel.user_data.address.last_name = undefined;
-      inputEventModel.user_data.address.city = 'menlopark';
-      inputEventModel.user_data.address.region = 'ca';
-      inputEventModel.user_data.address.postal_code = '94025';
-      inputEventModel.user_data.address.country = 'usa';
-      return inputEventModel;
-    });
-
-    runCode(testConfigurationData);
-
-    assertThat(JSON.parse(httpBody).data[0].user_data.em).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(hashFunction('1234567890').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.fn).isEqualTo(hashFunction('John').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.ln).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.ct).isEqualTo(hashFunction('menlopark').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.st).isEqualTo(hashFunction('ca').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isEqualTo(hashFunction('94025').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.country).isEqualTo(hashFunction('usa').split());
 setup: |-
   // Arrange
   const JSON = require('JSON');
@@ -1758,12 +2033,15 @@ setup: |-
     //custom_data
     currency: "USD",
     value: "123",
-    content_ids: "[\"123\", \"456\"]",
-    contents:  "[{\"id\": \"123\", \"item_price\": \"12.4\", \"quantity\": 2}, {\"id\": \"456\", \"item_price\": \"14.2\", \"quantity\": 3}]",
+    content_name: "pinterest-themed-clothing",
+    content_category: "shirts",
+    content_brand: "pinterest-brand",
+    content_ids: ["id_01", "id_02"],
+    contents:  [{"id": "id_01", "item_price": "12.4", "quantity": 2}, {"id": "id_02", "item_price": "14.2", "quantity": 3}],
     num_items: "5",
-    "order_id": "order_id",
-    "search_string": "shoes",
-    "opt_out_type": "LDP",
+    order_id: "order_id",
+    search_string: "shoes",
+    opt_out_type: "LDP",
     language: "en"
   };
 
@@ -1795,6 +2073,9 @@ setup: |-
     //custom_data
     "currency": testData.currency,
     "value": testData.value,
+    "content_name": testData.content_name,
+    "content_category": testData.content_category,
+    "content_brand": testData.content_brand,
     "content_ids": testData.content_ids,
     "contents": testData.contents,
     "num_items": testData.num_items,
@@ -1830,8 +2111,11 @@ setup: |-
   "custom_data": {
     "currency": testData.currency,
     "value": testData.value,
-    "content_ids": JSON.parse(testData.content_ids),
-    "contents": JSON.parse(testData.contents),
+    "content_name": testData.content_name,
+    "content_category": testData.content_category,
+    "content_brand": testData.content_brand,
+    "content_ids": testData.content_ids,
+    "contents": testData.contents,
     "num_items": makeInteger(testData.num_items),
     "order_id": testData.order_id,
     "search_string": testData.search_string,
@@ -1871,4 +2155,4 @@ Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 05/10/2023, 12:00:00 PM
+Updated on 06/30/2023, 12:00:00 PM
