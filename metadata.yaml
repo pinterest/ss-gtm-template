@@ -2,7 +2,7 @@ homepage: "https://help.pinterest.com/en/business/article/the-pinterest-api-for-
 documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging"
 versions:
   # Latest version
-- sha: 049b1fe2cdd333bfc2f529168ff0ba0c5c37d5c4
+- sha: f3f5274f7719f579efa5db2d4150e73fa01e41b9
   changeNotes: Update template name to Pinterest Conversions API Tag.
     # Older versions
 - sha: 56c97f4a62e52e85b1a2e4ab30141c1ef9abea31
