@@ -23,7 +23,7 @@ ___INFO___
     "displayName": "Pinterest",
     "id": "brand_pinterest"
   },
-  "description": "A server-side Tag to fire events to the Pinterest API for Conversions.",
+  "description": "A server-side Tag to fire events to the Pinterest Conversions API.",
   "containerContexts": [
     "SERVER"
   ]
