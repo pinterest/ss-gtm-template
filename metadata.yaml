@@ -2,9 +2,11 @@ homepage: "https://help.pinterest.com/en/business/article/the-pinterest-api-for-
 documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging"
 versions:
   # Latest version
+- sha: 049b1fe2cdd333bfc2f529168ff0ba0c5c37d5c4
+  changeNotes: Update template name to Pinterest Conversions API Tag.
+    # Older versions
 - sha: 56c97f4a62e52e85b1a2e4ab30141c1ef9abea31
   changeNotes: Add support for content_name, content_category, content_brand and contents.id.
-  # Older versions
 - sha: cc476becbd6be1d264ffc7c4d26bb24949ec4b51
   changeNotes: Process view_item and get params from GA4.
 - sha: 5cd3b83a1cdf40d3c32dbdf1cbbdcebcb0d9af24
