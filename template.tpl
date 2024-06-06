@@ -73,53 +73,77 @@ ___TEMPLATE_PARAMETERS___
         "displayValue": "Inherit from client"
       },
       {
-        "value": "pinterestEventName",
+        "value": "overrideClient",
         "displayValue": "Override client",
         "subParams": [
           {
-            "type": "SELECT",
-            "name": "eventNameStandard",
-            "macrosInSelect": false,
-            "selectItems": [
+            "type": "RADIO",
+            "name": "eventNameType",
+            "radioItems": [
               {
-                "value": "add_to_cart",
-                "displayValue": "add_to_cart"
-              },
-              {
-                "value": "checkout",
-                "displayValue": "checkout"
+                "value": "standard",
+                "displayValue": "Standard event name",
+                "subParams": [
+                  {
+                    "type": "SELECT",
+                    "name": "eventNameStandard",
+                    "macrosInSelect": false,
+                    "selectItems": [
+                      {
+                        "value": "add_to_cart",
+                        "displayValue": "add_to_cart"
+                      },
+                      {
+                        "value": "checkout",
+                        "displayValue": "checkout"
+                      },
+                      {
+                        "value": "custom",
+                        "displayValue": "custom"
+                      },
+                      {
+                        "value": "lead",
+                        "displayValue": "lead"
+                      },
+                      {
+                        "value": "page_visit",
+                        "displayValue": "page_visit"
+                      },
+                      {
+                        "value": "search",
+                        "displayValue": "search"
+                      },
+                      {
+                        "value": "signup",
+                        "displayValue": "signup"
+                      },
+                      {
+                        "value": "view_category",
+                        "displayValue": "view_category"
+                      },
+                      {
+                        "value": "watch_video",
+                        "displayValue": "watch_video"
+                      }
+                    ],
+                    "simpleValueType": true,
+                    "defaultValue": "page_visit"
+                  }
+                ]
               },
               {
                 "value": "custom",
-                "displayValue": "custom"
-              },
-              {
-                "value": "lead",
-                "displayValue": "lead"
-              },
-              {
-                "value": "page_visit",
-                "displayValue": "page_visit"
-              },
-              {
-                "value": "search",
-                "displayValue": "search"
-              },
-              {
-                "value": "signup",
-                "displayValue": "signup"
-              },
-              {
-                "value": "view_category",
-                "displayValue": "view_category"
-              },
-              {
-                "value": "watch_video",
-                "displayValue": "watch_video"
+                "displayValue": "Custom event name",
+                "subParams": [
+                  {
+                    "type": "TEXT",
+                    "name": "eventNameCustom",
+                    "simpleValueType": true
+                  }
+                ]
               }
             ],
             "simpleValueType": true,
-            "defaultValue": "page_visit"
           }
         ]
       }
@@ -603,8 +627,10 @@ function getPinterestEventName(gtmEventName, toLowerCase) {
       gtmEventName = gtmEventName.trim().toLowerCase();
     }
     pinterestEventName = EVENT_NAME_MAPPINGS[gtmEventName] || gtmEventName;
-  } else if ( data.eventName === 'pinterestEventName') {
+  } else if (data.eventNameType === 'standard') {
     pinterestEventName = data.eventNameStandard;
+  } else if (data.eventNameType === 'custom') {
+    pinterestEventName = data.eventNameCustom;
   }
   return pinterestEventName;
 }
@@ -1481,7 +1507,8 @@ ___SERVER_PERMISSIONS___
 ___TESTS___
 
 scenarios:
-- name: On EventModel model data tag triggers to send to Pinterest Conversions API (cAPI)
+- name: On EventModel model data tag triggers to send to Pinterest Conversions API
+    (cAPI)
   code: |-
     // Act
     runCode(testConfigurationData);
@@ -1489,7 +1516,8 @@ scenarios:
     //Assert
     assertApi('sendHttpRequest').wasCalledWith(requestEndpoint, actualSuccessCallback, requestHeaderOptions, JSON.stringify(requestData));
     assertApi('gtmOnSuccess').wasCalled();
-- name: On sending 'action_source' from Client, Tag overrides the preset configuration from server side
+- name: On sending 'action_source' from Client, Tag overrides the preset configuration
+    from server side
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1500,7 +1528,8 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].action_source).isEqualTo(testConfigurationData.serverEventDataList[testConfigurationData.serverEventDataList.map(o => o.name).indexOf('action_source')].value);
-- name: On not sending 'action_source' from Client, Tag set 'web' as a default value for cAPI
+- name: On not sending 'action_source' from Client, Tag set 'web' as a default value
+    for cAPI
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1564,7 +1593,8 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('any_other_name');
-- name: On receiving event data, Tag hashes the 'user_data' fields if they are not already hashed
+- name: On receiving event data, Tag hashes the 'user_data' fields if they are not
+    already hashed
   code: |-
     // Un-hashed raw email_address from Common Event Schema is hashed before posted to Conversions API.
 
@@ -1710,7 +1740,8 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.value).isEqualTo("12");
-- name: On receiving 'content_ids' with different formats, Tag transforms it to an Array of Strings
+- name: On receiving 'content_ids' with different formats, Tag transforms it to an
+    Array of Strings
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1771,7 +1802,7 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","3"]);
-    
+
     // Act
     mock('getAllEventData', () => {
       inputEventModel.content_ids = "  ";
@@ -1802,7 +1833,8 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isUndefined();
-- name: On receiving 'contents' with different formats, Tag transforms it to a valid Json object if feasible
+- name: On receiving 'contents' with different formats, Tag transforms it to a valid
+    Json object if feasible
   code: |-
     // Act
     mock('getAllEventData', () => {
@@ -1938,8 +1970,9 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"5","item_price":"0","quantity":2},{"id":"item_01","item_price":"12.5","quantity":3}]);
-- name: On receiving 'items' from GA4 event, Tag parses them into 'content_ids', 'contents' and 'num_items' for cAPI
-  code: |+
+- name: On receiving 'items' from GA4 event, Tag parses them into 'content_ids', 'contents'
+    and 'num_items' for cAPI
+  code: |
     // Act
     let items = [
       {
@@ -2156,3 +2189,5 @@ Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
 Updated on 06/30/2023, 12:00:00 PM
+
+
