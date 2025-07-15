@@ -82,8 +82,16 @@ ___TEMPLATE_PARAMETERS___
             "macrosInSelect": false,
             "selectItems": [
               {
+                "value": "add_payment_info",
+                "displayValue": "add_payment_info"
+              },
+              {
                 "value": "add_to_cart",
                 "displayValue": "add_to_cart"
+              },
+              {
+                "value": "add_to_wishlist",
+                "displayValue": "add_to_wishlist"
               },
               {
                 "value": "checkout",
@@ -92,6 +100,10 @@ ___TEMPLATE_PARAMETERS___
               {
                 "value": "custom",
                 "displayValue": "custom"
+              },
+              {
+                "value": "initiate_checkout",
+                "displayValue": "initiate_checkout"
               },
               {
                 "value": "lead",
@@ -110,8 +122,16 @@ ___TEMPLATE_PARAMETERS___
                 "displayValue": "signup"
               },
               {
+                "value": "subscribe",
+                "displayValue": "subscribe"
+              },
+              {
                 "value": "view_category",
                 "displayValue": "view_category"
+              },
+              {
+                "value": "view_content",
+                "displayValue": "view_content"
               },
               {
                 "value": "watch_video",
@@ -512,20 +532,20 @@ const EVENT_NAME_MAPPINGS = {
   "signup": "signup",
   "completeregistration": "signup",
   "viewcategory": "view_category",
-  "viewcontent": "view_category",
-  "view_item_list": "view_category",
+  "viewcontent": "view_content",
+  "view_item_list": "view_content",
   "watchvideo": "watch_video",
-  "add_payment_info": "custom",
+  "add_payment_info": "add_payment_info",
   "add_shipping_info": "custom",
-  "add_to_wishlist": "custom",
-  "begin_checkout": "custom",
+  "add_to_wishlist": "add_to_wishlist",
+  "begin_checkout": "initiate_checkout",
   "refund": "custom",
   "remove_from_cart": "custom",
   "select_item": "custom",
   "select_promotion": "custom",
-  "view_cart": "custom",
-  "view_item": "page_visit",
-  "view_promotion": "custom"
+  "view_cart": "view_content",
+  "view_item": "view_content",
+  "view_promotion": "view_content"
 };
 
 const PARAM_VALUE_FORMAT = {
@@ -603,7 +623,7 @@ function getPinterestEventName(gtmEventName, toLowerCase) {
       gtmEventName = gtmEventName.trim().toLowerCase();
     }
     pinterestEventName = EVENT_NAME_MAPPINGS[gtmEventName] || gtmEventName;
-  } else if ( data.eventName === 'pinterestEventName') {
+  } else if (data.eventName === 'pinterestEventName') {
     pinterestEventName = data.eventNameStandard;
   }
   return pinterestEventName;
@@ -1553,7 +1573,7 @@ scenarios:
     runCode(testConfigurationData);
 
     //Assert
-    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('custom');
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('view_content');
 
     // Act
     mock('getAllEventData', () => {
@@ -1939,7 +1959,7 @@ scenarios:
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"5","item_price":"0","quantity":2},{"id":"item_01","item_price":"12.5","quantity":3}]);
 - name: On receiving 'items' from GA4 event, Tag parses them into 'content_ids', 'contents' and 'num_items' for cAPI
-  code: |+
+  code: |
     // Act
     let items = [
       {
@@ -2155,4 +2175,4 @@ Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 06/30/2023, 12:00:00 PM
+Updated on 07/04/2025, 12:00:00 PM
