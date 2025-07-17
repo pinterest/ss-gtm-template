@@ -533,17 +533,17 @@ const EVENT_NAME_MAPPINGS = {
   "completeregistration": "signup",
   "viewcategory": "view_category",
   "viewcontent": "view_content",
-  "view_item_list": "view_content",
+  "view_item_list": "view_category",
   "watchvideo": "watch_video",
   "add_payment_info": "add_payment_info",
-  "add_shipping_info": "custom",
+  "add_shipping_info": "initiate_checkout",
   "add_to_wishlist": "add_to_wishlist",
   "begin_checkout": "initiate_checkout",
   "refund": "custom",
   "remove_from_cart": "custom",
-  "select_item": "custom",
-  "select_promotion": "custom",
-  "view_cart": "view_content",
+  "select_item": "view_content",
+  "select_promotion": "view_content",
+  "view_cart": "custom",
   "view_item": "view_content",
   "view_promotion": "view_content"
 };
@@ -1573,7 +1573,7 @@ scenarios:
     runCode(testConfigurationData);
 
     //Assert
-    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('view_content');
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('custom');
 
     // Act
     mock('getAllEventData', () => {
@@ -2175,4 +2175,4 @@ Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 07/04/2025, 12:00:00 PM
+Updated on 7/17/2025, 12:00:00 PM
