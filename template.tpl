@@ -544,7 +544,7 @@ const EVENT_NAME_MAPPINGS = {
   "select_item": "view_content",
   "select_promotion": "view_content",
   "view_cart": "custom",
-  "view_item": "view_content",
+  "view_item": "page_visit",
   "view_promotion": "view_content"
 };
 
@@ -2175,4 +2175,4 @@ Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 7/17/2025, 12:00:00 PM
+Updated on 9/2/2025, 12:00:00 PM
