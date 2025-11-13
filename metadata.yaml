@@ -2,9 +2,11 @@ homepage: "https://help.pinterest.com/en/business/article/the-pinterest-api-for-
 documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging"
 versions:
   # Latest version
+- sha: 00c4c4653655507a886efbc4ba4c0baa4fc54c80
+  changeNotes: Add support for predicted_ltv.
+  # Older versions
 - sha: c1a5263a79f50aa267049fee6dda7e194081b1fc
   changeNotes: Update view_item mapping from view_content to page_visit.
-  # Older versions
 - sha: fdc570ed390dd8d35393b0c3e2a74f450835ed53
   changeNotes: Update event type mapping for GA4 events.
 - sha: 642cdcfeb784abc19fe137e916ea0454bef6455b
