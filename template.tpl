@@ -436,6 +436,10 @@ ___TEMPLATE_PARAMETERS___
               {
                 "value": "opt_out_type",
                 "displayValue": "OptOutType"
+              },
+              {
+                "value": "predicted_ltv",
+                "displayValue": "Predicted lifetime value"
               }
             ]
           },
@@ -507,7 +511,7 @@ const logToConsole = require('logToConsole');
 // CONSTANTS
 const isLogEnabled = isLoggingEnabled();
 const eventModel = getAllEventData();
-if (isLogEnabled) logToConsole(JSON.stringify({'Tag Data': data}));
+if (isLogEnabled) logToConsole(JSON.stringify({'SS-GTM Tag Data': data}));
 if (isLogEnabled) logToConsole(JSON.stringify({'Event Data': eventModel}));
 
 // GA4 event names/types: https://support.google.com/analytics/answer/9267735
@@ -855,6 +859,10 @@ if (eventModel.search_string) {
 // opt_out_type
 if (eventModel.opt_out_type) {
   event.custom_data.opt_out_type = eventModel.opt_out_type;
+}
+// predicted_ltv
+if (eventModel.predicted_ltv) {
+  event.custom_data.predicted_ltv = eventModel.predicted_ltv;
 }
 // app_id
 if (eventModel.app_id) {
@@ -2062,6 +2070,7 @@ setup: |-
     order_id: "order_id",
     search_string: "shoes",
     opt_out_type: "LDP",
+    predicted_ltv: "2794.82",
     language: "en"
   };
 
@@ -2102,6 +2111,7 @@ setup: |-
     "order_id": testData.order_id,
     "search_string": testData.search_string,
     "opt_out_type": testData.opt_out_type,
+    "predicted_ltv": testData.predicted_ltv,
     "language": testData.language
   };
 
@@ -2140,6 +2150,7 @@ setup: |-
     "order_id": testData.order_id,
     "search_string": testData.search_string,
     "opt_out_type": testData.opt_out_type,
+    "predicted_ltv": testData.predicted_ltv,
     "np": DEFAULT_NAMED_PARTNER
   },
   "language": testData.language
@@ -2175,4 +2186,4 @@ Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 9/2/2025, 12:00:00 PM
+Updated on 11/13/2025, 12:00:00 PM
