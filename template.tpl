@@ -849,7 +849,11 @@ if (eventModel.num_items) {
   event.custom_data.num_items = eventModel.items.length;
 }
 // order_id
-if (eventModel.order_id) {
+// standard mapping from GA4 data model
+if (eventModel.transaction_id) {
+  event.custom_data.order_id = eventModel.transaction_id;
+} // for backwards compatibility for users that set order_id
+else if (eventModel.order_id) {
   event.custom_data.order_id = eventModel.order_id;
 }
 // search_string
@@ -2010,6 +2014,30 @@ scenarios:
     // num_items
     let actual_num_items = JSON.parse(httpBody).data[0].custom_data.num_items;
     assertThat(JSON.parse(httpBody).data[0].custom_data.contents.length).isEqualTo(items.length);
+- name: On receiving ‘transaction_id’ or ‘order_id’ from GA4 event, Tag parses them
+    into ‘order_id’ for cAPI
+  code: |-
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.order_id = undefined;
+      inputEventModel.transaction_id = 'transaction_id';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.order_id).isEqualTo("transaction_id");
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.transaction_id = undefined;
+      inputEventModel.order_id = 'order_id';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.order_id).isEqualTo("order_id");
 setup: |-
   // Arrange
   const JSON = require('JSON');
