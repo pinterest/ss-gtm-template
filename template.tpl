@@ -94,12 +94,32 @@ ___TEMPLATE_PARAMETERS___
                 "displayValue": "add_to_wishlist"
               },
               {
+                "value": "app_install",
+                "displayValue": "app_install"
+              },
+              {
+                "value": "app_open",
+                "displayValue": "app_open"
+              },
+              {
                 "value": "checkout",
                 "displayValue": "checkout"
               },
               {
+                "value": "contact",
+                "displayValue": "contact"
+              },
+              {
                 "value": "custom",
                 "displayValue": "custom"
+              },
+              {
+                "value": "customize_product",
+                "displayValue": "customize_product"
+              },
+              {
+                "value": "find_location",
+                "displayValue": "find_location"
               },
               {
                 "value": "initiate_checkout",
@@ -114,12 +134,24 @@ ___TEMPLATE_PARAMETERS___
                 "displayValue": "page_visit"
               },
               {
+                "value": "schedule",
+                "displayValue": "schedule"
+              },
+              {
                 "value": "search",
                 "displayValue": "search"
               },
               {
                 "value": "signup",
                 "displayValue": "signup"
+              },
+              {
+                "value": "start_trial",
+                "displayValue": "start_trial"
+              },
+              {
+                "value": "submit_application",
+                "displayValue": "submit_application"
               },
               {
                 "value": "subscribe",
@@ -136,10 +168,38 @@ ___TEMPLATE_PARAMETERS___
               {
                 "value": "watch_video",
                 "displayValue": "watch_video"
+              },
+              {
+                "value": "custom_event",
+                "displayValue": "Custom Event"
               }
             ],
             "simpleValueType": true,
             "defaultValue": "page_visit"
+          },
+          {
+            "help": "This allows you to define your own custom event name.",
+            "displayName": "Custom Event Name",
+            "name": "adeEventName",
+            "type": "TEXT",
+            "enablingConditions": [
+              {
+                "paramName": "eventNameStandard",
+                "type": "EQUALS",
+                "paramValue": "custom_event"
+              }
+            ],
+            "valueValidators": [
+              {
+                "type": "NON_EMPTY"
+              },
+              {
+                "args": [
+                  "^[a-zA-Z_]+$"
+                ],
+                "type": "REGEX"
+              }
+            ]
           }
         ]
       }
@@ -524,14 +584,16 @@ const EVENT_NAME_MAPPINGS = {
   "pay": "checkout",
   "payment": "checkout",
   "generate_lead": "lead",
-  "submit_application": "lead",
-  "contact": "lead",
+  "submit_application": "submit_application",
+  "submitapplication": "submit_application",
+  "contact": "contact",
   "page_view": "page_visit",
   "pageview": "page_visit",
   "pagevisit": "page_visit",
   "gtm.dom": "page_visit",
   "search": "search",
-  "find_location": "search",
+  "find_location": "find_location",
+  "findlocation": "find_location",
   "sign_up": "signup",
   "signup": "signup",
   "completeregistration": "signup",
@@ -549,7 +611,17 @@ const EVENT_NAME_MAPPINGS = {
   "select_promotion": "view_content",
   "view_cart": "custom",
   "view_item": "page_visit",
-  "view_promotion": "view_content"
+  "view_promotion": "view_content",
+  "app_install": "app_install",
+  "appinstall": "app_install",
+  "app_open": "app_open",
+  "appopen": "app_open",
+  "schedule": "schedule",
+  "customize_product": "customize_product",
+  "customizeproduct": "customize_product",
+  "start_trial": "start_trial",
+  "starttrial": "start_trial",
+  "subscribe": "subscribe"
 };
 
 const PARAM_VALUE_FORMAT = {
@@ -628,7 +700,11 @@ function getPinterestEventName(gtmEventName, toLowerCase) {
     }
     pinterestEventName = EVENT_NAME_MAPPINGS[gtmEventName] || gtmEventName;
   } else if (data.eventName === 'pinterestEventName') {
-    pinterestEventName = data.eventNameStandard;
+    if (data.eventNameStandard === 'custom_event') {
+      pinterestEventName = data.adeEventName;
+    } else {
+      pinterestEventName = data.eventNameStandard;
+    }
   }
   return pinterestEventName;
 }
@@ -2010,6 +2086,134 @@ scenarios:
     // num_items
     let actual_num_items = JSON.parse(httpBody).data[0].custom_data.num_items;
     assertThat(JSON.parse(httpBody).data[0].custom_data.contents.length).isEqualTo(items.length);
+- name: On receiving new standard event names, Tag maps them to the correct Pinterest event names
+  code: |-
+    const newEventMappings = [
+      ['app_install', 'app_install'],
+      ['appinstall', 'app_install'],
+      ['app_open', 'app_open'],
+      ['appopen', 'app_open'],
+      ['schedule', 'schedule'],
+      ['customize_product', 'customize_product'],
+      ['customizeproduct', 'customize_product'],
+      ['start_trial', 'start_trial'],
+      ['starttrial', 'start_trial'],
+      ['subscribe', 'subscribe'],
+    ];
+
+    for (let i = 0; i < newEventMappings.length; i++) {
+      const inputName = newEventMappings[i][0];
+      const expectedName = newEventMappings[i][1];
+
+      mock('getAllEventData', () => {
+        inputEventModel.event_name = inputName;
+        return inputEventModel;
+      });
+      runCode(testConfigurationData);
+
+      assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo(expectedName);
+    }
+- name: On receiving event names that previously mapped to other events, Tag now maps them to their own Pinterest event names
+  code: |-
+    // submit_application was previously mapped to 'lead', now maps to 'submit_application'
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = 'submit_application';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('submit_application');
+
+    // submitapplication (normalized) maps to 'submit_application'
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = 'submitapplication';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('submit_application');
+
+    // contact was previously mapped to 'lead', now maps to 'contact'
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = 'contact';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('contact');
+
+    // find_location was previously mapped to 'search', now maps to 'find_location'
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = 'find_location';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('find_location');
+
+    // findlocation (normalized) maps to 'find_location'
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = 'findlocation';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('find_location');
+
+    // generate_lead still maps to 'lead' (unchanged)
+    mock('getAllEventData', () => {
+      inputEventModel.event_name = 'generate_lead';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('lead');
+- name: On selecting a standard Pinterest event name in pinterestEventName mode, Tag uses the selected event name directly
+  code: |-
+    const standardEvents = [
+      'app_install',
+      'app_open',
+      'schedule',
+      'customize_product',
+      'start_trial',
+      'subscribe',
+      'contact',
+      'find_location',
+      'submit_application',
+    ];
+
+    for (let i = 0; i < standardEvents.length; i++) {
+      const eventName = standardEvents[i];
+      const config = {
+        advertiserId: testConfigurationData.advertiserId,
+        apiAccessToken: testConfigurationData.apiAccessToken,
+        overrideMode: testConfigurationData.overrideMode,
+        serverEventDataList: testConfigurationData.serverEventDataList,
+        eventName: 'pinterestEventName',
+        eventNameStandard: eventName
+      };
+      runCode(config);
+      assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo(eventName);
+    }
+- name: On selecting custom_event in pinterestEventName mode, Tag uses the ADE custom event name
+  code: |-
+    // When eventNameStandard is 'custom_event', the tag should use adeEventName
+    runCode({
+      advertiserId: testConfigurationData.advertiserId,
+      apiAccessToken: testConfigurationData.apiAccessToken,
+      overrideMode: testConfigurationData.overrideMode,
+      serverEventDataList: testConfigurationData.serverEventDataList,
+      eventName: 'pinterestEventName',
+      eventNameStandard: 'custom_event',
+      adeEventName: 'my_custom_event'
+    });
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('my_custom_event');
+
+    // Different custom event names are passed through as-is
+    runCode({
+      advertiserId: testConfigurationData.advertiserId,
+      apiAccessToken: testConfigurationData.apiAccessToken,
+      overrideMode: testConfigurationData.overrideMode,
+      serverEventDataList: testConfigurationData.serverEventDataList,
+      eventName: 'pinterestEventName',
+      eventNameStandard: 'custom_event',
+      adeEventName: 'purchase_completed'
+    });
+    assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('purchase_completed');
 setup: |-
   // Arrange
   const JSON = require('JSON');
@@ -2184,6 +2388,7 @@ Points of Contact:
 Yuchen Mou <ymou@pinterest.com>
 Jian Li <jianli@pinterest.com>
 Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
+John Abdou <jabdou@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 11/13/2025, 12:00:00 PM
+Updated on 3/4/2026, 12:00:00 PM
