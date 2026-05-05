@@ -500,6 +500,10 @@ ___TEMPLATE_PARAMETERS___
               {
                 "value": "predicted_ltv",
                 "displayValue": "Predicted lifetime value"
+              },
+              {
+                "value": "line_items",
+                "displayValue": "Line Items"
               }
             ]
           },
@@ -644,7 +648,8 @@ const PARAM_VALUE_FORMAT = {
   "hashed_maids": "array-hashed",
   "external_id": "array-hashed",
   "content_ids": "array",
-  "contents": "json"
+  "contents": "json",
+  "line_items": "json"
 };
 
 const DEFAULT_NAMED_PARTNER = 'ss-gtm';
@@ -686,10 +691,109 @@ function getContentsFromItems(items) {
     });
 }
 
+function getContentsFromLineItems(lineItems) {
+    return lineItems.map(function(item) {
+        var content = {};
+        if (item.product_id) content.id = makeString(item.product_id);
+        if (item.product_name) content.item_name = makeString(item.product_name);
+        if (item.product_category) content.item_category = makeString(item.product_category);
+        if (item.product_price != null) content.item_price = makeString(item.product_price);
+        if (item.product_quantity != null) content.quantity = makeInteger(item.product_quantity);
+        if (item.product_brand) content.item_brand = makeString(item.product_brand);
+        return content;
+    });
+}
+
+function getContentIdsFromContents(contents) {
+    return contents
+        .filter(function(content) { return content && content.id; })
+        .map(function(content) { return makeString(content.id); });
+}
+
 function getContentIdsFromItems(items) {
-    return JSON.stringify(items.map(item => {
-        return makeString((item.item_id) ? item.item_id : item.item_name);
-    }));
+    return items
+        .filter(function(item) { return item.item_id || item.item_name; })
+        .map(function(item) { return makeString((item.item_id) ? item.item_id : item.item_name); });
+}
+
+function getContentIdsFromLineItems(lineItems) {
+    return lineItems
+        .filter(function(item) { return item.product_id; })
+        .map(function(item) { return makeString(item.product_id); });
+}
+
+function getNonNegativeQuantity(value, defaultValue) {
+    var quantity = makeInteger(value);
+    if (quantity == null) return defaultValue;
+    return quantity < 0 ? 0 : quantity;
+}
+
+function sumContentsQuantity(contents) {
+    return contents.reduce(function(total, content) {
+        var quantity = (content && content.quantity != null) ?
+            getNonNegativeQuantity(content.quantity, 1) :
+            1;
+        return total + quantity;
+    }, 0);
+}
+
+function sumItemsQuantity(items) {
+    return items.reduce(function(total, item) {
+        var quantity = (item && item.quantity != null) ?
+            getNonNegativeQuantity(item.quantity, 1) :
+            1;
+        return total + quantity;
+    }, 0);
+}
+
+function sumLineItemsQuantity(lineItems) {
+    return lineItems.reduce(function(total, item) {
+        var quantity = (item && item.product_quantity != null) ?
+            getNonNegativeQuantity(item.product_quantity, 1) :
+            1;
+        return total + quantity;
+    }, 0);
+}
+
+function populateContentsFields(customData, contents, items, lineItems, shouldSkip) {
+    shouldSkip = shouldSkip || function(field) { return customData[field] != null; };
+    contents = getArrayIfArray(contents);
+    items = getArrayIfArray(items);
+    lineItems = getArrayIfArray(lineItems);
+
+    if (!shouldSkip('contents')) {
+        if (contents) customData.contents = contents;
+        else if (items) customData.contents = getContentsFromItems(items);
+        else if (lineItems) customData.contents = getContentsFromLineItems(lineItems);
+    }
+    if (!shouldSkip('content_ids')) {
+        var customContents = getArrayIfArray(customData.contents);
+        var contentIdSources = [
+            contents ? getContentIdsFromContents(contents) : undefined,
+            items ? getContentIdsFromItems(items) : undefined,
+            lineItems ? getContentIdsFromLineItems(lineItems) : undefined
+        ];
+        customData.content_ids = [];
+        for (var index = 0; index < contentIdSources.length; index++) {
+            var nextContentIds = contentIdSources[index];
+            if (!nextContentIds) continue;
+            customData.content_ids = nextContentIds;
+            if (customData.content_ids.length === 0) {
+                customData.content_ids = [];
+                continue;
+            }
+            if (customContents && customData.content_ids.length !== customContents.length) {
+                customData.content_ids = [];
+                continue;
+            }
+            break;
+        }
+    }
+    if (!shouldSkip('num_items')) {
+        if (contents) customData.num_items = sumContentsQuantity(contents);
+        else if (items) customData.num_items = sumItemsQuantity(items);
+        else if (lineItems) customData.num_items = sumLineItemsQuantity(lineItems);
+    }
 }
 
 function getPinterestEventName(gtmEventName, toLowerCase) {
@@ -742,6 +846,13 @@ function convertToArrayOfStrings(input, hashIfNeeded) {
   });
 }
 
+function convertOrderIdToString(orderId) {
+  const type = getType(orderId);
+  if (type === 'undefined' || orderId === 'undefined') return undefined;
+  if (orderId == null) return orderId;
+  return makeString(orderId);
+}
+
 function getBooleanFromString(input) {
   const type = getType(input);
   if (type == 'undefined' || input == 'undefined') {
@@ -765,8 +876,26 @@ function getJsonFromString(input) {
     return input;
   }
 
-  return (typeof input === 'string' && input.charAt(0) === '[' && input.charAt(input.length - 1) === ']' 
-          && input.charAt(1) === '{' && input.charAt(input.length - 2) === '}') ? JSON.parse(input) : input;
+  if (typeof input === 'string') {
+    var trimmedInput = input.trim();
+    var hasOnlyStrictObjects = true;
+    for (var i = 0; i < trimmedInput.length; i++) {
+      if (trimmedInput.charAt(i) === '{' && trimmedInput.charAt(i + 1) !== '"' && trimmedInput.charAt(i + 1) !== '}') {
+        hasOnlyStrictObjects = false;
+      }
+    }
+    var isArrayString = trimmedInput.charAt(0) === '[' && trimmedInput.charAt(trimmedInput.length - 1) === ']';
+    var isArrayOfObjects = trimmedInput.charAt(1) === '{' && trimmedInput.charAt(trimmedInput.length - 2) === '}';
+    var isStrictObjectArray = isArrayOfObjects && hasOnlyStrictObjects;
+    return (isArrayString && isStrictObjectArray) ? JSON.parse(trimmedInput) : input;
+  }
+
+  return input;
+}
+
+function getArrayIfArray(input) {
+  const arrayInput = getJsonFromString(input);
+  return getType(arrayInput) === 'array' ? arrayInput : undefined;
 }
 
 function overrideEventData(event, data) {
@@ -785,6 +914,34 @@ function overrideEventData(event, data) {
       event.custom_data[d.name] = d.value;
     });
   }
+}
+
+function hasCustomDataOverride(data, name) {
+  if (!data.customDataList) return false;
+  for (var i = 0; i < data.customDataList.length; i++) {
+    if (data.customDataList[i].name === name) return true;
+  }
+  return false;
+}
+
+function populateContentsFromOverrideData(customData, data) {
+  if (!customData || !customData.line_items) return;
+  var overrideLineItems = hasCustomDataOverride(data, 'line_items') ?
+    getArrayIfArray(customData.line_items) :
+    null;
+  var overrideContents = hasCustomDataOverride(data, 'contents') ?
+    getArrayIfArray(customData.contents) :
+    null;
+  if (overrideLineItems) {
+    populateContentsFields(
+      customData,
+      overrideContents,
+      null,
+      overrideLineItems,
+      function(field) { return hasCustomDataOverride(data, field); }
+    );
+  }
+  customData.line_items = undefined;
 }
 
 function formatDataTypes(object) {
@@ -886,6 +1043,9 @@ event.user_data.client_user_agent = (eventModel.user_data && eventModel.user_dat
 
 // CUSTOM PARAMETERS (custom_data)
 event.custom_data = {};
+const lineItems = getArrayIfArray(eventModel.line_items);
+const items = getArrayIfArray(eventModel.items);
+const contents = getArrayIfArray(eventModel.contents);
 // currency
 if (eventModel.currency) {
   event.custom_data.currency = eventModel.currency;
@@ -909,24 +1069,20 @@ if (eventModel.content_brand) {
 // content_ids
 if (eventModel.content_ids) {
   event.custom_data.content_ids = eventModel.content_ids;
-} else if (eventModel.items) {
-  event.custom_data.content_ids = getContentIdsFromItems(eventModel.items);
 }
 // contents
-if (eventModel.contents) {
-  event.custom_data.contents = eventModel.contents;
-} else if (eventModel.items) {
-  event.custom_data.contents = getContentsFromItems(eventModel.items);
+if (contents) {
+  event.custom_data.contents = contents;
 }
 // num_items
 if (eventModel.num_items) {
   event.custom_data.num_items = eventModel.num_items;
-} else if (eventModel.items) {
-  event.custom_data.num_items = eventModel.items.length;
 }
+// fill in contents / content_ids / num_items from items or line_items when missing
+populateContentsFields(event.custom_data, contents, items, lineItems);
 // order_id
 if (eventModel.order_id) {
-  event.custom_data.order_id = eventModel.order_id;
+  event.custom_data.order_id = convertOrderIdToString(eventModel.order_id);
 }
 // search_string
 if (eventModel.search_string) {
@@ -988,6 +1144,9 @@ event.custom_data.np = DEFAULT_NAMED_PARTNER;
 if (data.overrideMode) {
   overrideEventData(event, data);
 }
+
+// Translate overridden line_items to CAPI contents/content_ids
+populateContentsFromOverrideData(event.custom_data, data);
 
 // ENSURE CORRECT FORMAT
 formatDataTypes(event);
@@ -1668,121 +1827,81 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo('any_other_name');
-- name: On receiving event data, Tag hashes the 'user_data' fields if they are not already hashed
+- name: Tag normalizes, hashes and skips 'user_data' fields based on their format and presence
   code: |-
-    // Un-hashed raw email_address from Common Event Schema is hashed before posted to Conversions API.
-
-    // Act
+    // Sub-case 1: raw fields are hashed; pre-hashed values are passed through unchanged
     mock('getAllEventData', () => {
-      inputEventModel.user_data = {};
-      inputEventModel.user_data.email_address = '[foo1@bar.com,foo2@bar.com]';
-      inputEventModel.user_data.phone_number = 'c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646';
-      inputEventModel.user_data.gender = " m ";
-      inputEventModel.user_data.hashed_maids = ["maid_01", "6ab15588d5535128752e63d57e2e216234e9633c6397cdcc98f4976b53d2a381"];
-      inputEventModel.user_data.address = {};
-      inputEventModel.user_data.address.first_name = 'Foo';
-      inputEventModel.user_data.address.last_name = "[Bar]";
-      inputEventModel.user_data.address.city = 'Menlo Park';
-      inputEventModel.user_data.address.region = 'ca';
-      inputEventModel.user_data.address.postal_code = '5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5';
-      inputEventModel.user_data.address.country = ['usa'];
+      inputEventModel.user_data = {
+        email_address: '[foo1@bar.com,foo2@bar.com]',
+        phone_number: 'c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646',
+        gender: " m ",
+        hashed_maids: ["maid_01", "6ab15588d5535128752e63d57e2e216234e9633c6397cdcc98f4976b53d2a381"],
+        address: {
+          first_name: 'Foo',
+          last_name: "[Bar]",
+          city: 'Menlo Park',
+          region: 'ca',
+          postal_code: '5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5',
+          country: ['usa']
+        }
+      };
       return inputEventModel;
     });
     runCode(testConfigurationData);
+    let ud = JSON.parse(httpBody).data[0].user_data;
+    assertThat(ud.em).isEqualTo([hashFunction('foo1@bar.com'),hashFunction('foo2@bar.com')]);
+    assertThat(ud.ph).isEqualTo(["c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646"]);
+    assertThat(ud.ge).isEqualTo(hashFunction('m').split());
+    assertThat(ud.hashed_maids).isEqualTo([hashFunction('maid_01'),"6ab15588d5535128752e63d57e2e216234e9633c6397cdcc98f4976b53d2a381"]);
+    assertThat(ud.fn).isEqualTo(hashFunction('Foo').split());
+    assertThat(ud.ln).isEqualTo(hashFunction('Bar').split());
+    assertThat(ud.ct).isEqualTo(hashFunction('Menlo Park').split());
+    assertThat(ud.st).isEqualTo(hashFunction('ca').split());
+    assertThat(ud.zp).isEqualTo(["5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5"]);
+    assertThat(ud.country).isEqualTo(hashFunction('usa').split());
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].user_data.em).isEqualTo([hashFunction('foo1@bar.com'),hashFunction('foo2@bar.com')]);
-    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(["c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646"]);
-    assertThat(JSON.parse(httpBody).data[0].user_data.ge).isEqualTo(hashFunction('m').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.hashed_maids).isEqualTo([hashFunction('maid_01'),"6ab15588d5535128752e63d57e2e216234e9633c6397cdcc98f4976b53d2a381"]);
-    assertThat(JSON.parse(httpBody).data[0].user_data.fn).isEqualTo(hashFunction('Foo').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.ln).isEqualTo(hashFunction('Bar').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.ct).isEqualTo(hashFunction('Menlo Park').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.st).isEqualTo(hashFunction('ca').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isEqualTo(["5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5"]);
-    assertThat(JSON.parse(httpBody).data[0].user_data.country).isEqualTo(hashFunction('usa').split());
-
-    // Un-hashed raw email_address in mixed-case is converted to lowercase, hashed and posted to Conversions API.
-
-    // Act
+    // Sub-case 2: mixed-case email is lowercased before hashing
     mock('getAllEventData', () => {
       inputEventModel.user_data.email_address = 'FOO@BAR.com';
       return inputEventModel;
     });
     runCode(testConfigurationData);
-
-    //Assert
     assertThat(JSON.parse(httpBody).data[0].user_data.em).isEqualTo(hashFunction('foo@bar.com').split());
 
-
-    // Already sha256(email_address) field from GA4 schema, is unchanged, is posted as-is to Conversions API.
-
-    // Act
+    // Sub-case 3: pre-hashed email is forwarded as-is
     mock('getAllEventData', () => {
       inputEventModel.user_data.email_address = hashFunction('foo@bar.com');
       return inputEventModel;
     });
     runCode(testConfigurationData);
-
-    //Assert
     assertThat(JSON.parse(httpBody).data[0].user_data.em).isEqualTo(hashFunction('foo@bar.com').split());
 
-    // Already null email field from GA4 schema, is sent as null to Conversions API.
-
-    // Act
+    // Sub-case 4: undefined fields are skipped while defined ones are hashed
     mock('getAllEventData', () => {
-      inputEventModel.user_data.email_address = null;
+      inputEventModel.user_data = {
+        email_address: undefined,
+        phone_number: '1234567890',
+        address: {
+          first_name: 'John',
+          last_name: undefined,
+          city: 'menlopark',
+          region: 'ca',
+          postal_code: '94025',
+          country: 'usa'
+        }
+      };
       return inputEventModel;
     });
     runCode(testConfigurationData);
-
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].user_data.em).isUndefined();
-- name: When some 'user_data' params are missing, Tag skips parsing the nested fields
-  code: |
-    mock('getAllEventData', () => {
-      inputEventModel.user_data = {};
-      inputEventModel.user_data.email_address = 'foo@bar.com';
-      inputEventModel.user_data.phone_number = '1234567890';
-      return inputEventModel;
-    });
-
-    runCode(testConfigurationData);
-
-    assertThat(JSON.parse(httpBody).data[0].user_data.em).isEqualTo(hashFunction('foo@bar.com').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(hashFunction('1234567890').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.fn).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.ln).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.ct).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.st).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.country).isUndefined();
-- name: When some 'user_data' params are undefined, Tag skips parsing them
-  code: |
-    mock('getAllEventData', () => {
-      inputEventModel.user_data = {};
-      inputEventModel.user_data.email_address = undefined;
-      inputEventModel.user_data.phone_number = '1234567890';
-      inputEventModel.user_data.address = {};
-      inputEventModel.user_data.address.first_name = 'John';
-      inputEventModel.user_data.address.last_name = undefined;
-      inputEventModel.user_data.address.city = 'menlopark';
-      inputEventModel.user_data.address.region = 'ca';
-      inputEventModel.user_data.address.postal_code = '94025';
-      inputEventModel.user_data.address.country = 'usa';
-      return inputEventModel;
-    });
-
-    runCode(testConfigurationData);
-
-    assertThat(JSON.parse(httpBody).data[0].user_data.em).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.ph).isEqualTo(hashFunction('1234567890').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.fn).isEqualTo(hashFunction('John').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.ln).isUndefined();
-    assertThat(JSON.parse(httpBody).data[0].user_data.ct).isEqualTo(hashFunction('menlopark').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.st).isEqualTo(hashFunction('ca').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.zp).isEqualTo(hashFunction('94025').split());
-    assertThat(JSON.parse(httpBody).data[0].user_data.country).isEqualTo(hashFunction('usa').split());
+    ud = JSON.parse(httpBody).data[0].user_data;
+    assertThat(ud.em).isUndefined();
+    assertThat(ud.ph).isEqualTo(hashFunction('1234567890').split());
+    assertThat(ud.fn).isEqualTo(hashFunction('John').split());
+    assertThat(ud.ln).isUndefined();
+    assertThat(ud.ct).isEqualTo(hashFunction('menlopark').split());
+    assertThat(ud.st).isEqualTo(hashFunction('ca').split());
+    assertThat(ud.zp).isEqualTo(hashFunction('94025').split());
+    assertThat(ud.country).isEqualTo(hashFunction('usa').split());
 - name: On receiving 'value' as number, Tag converts it to String format
   code: |
     // Act
@@ -1816,187 +1935,76 @@ scenarios:
     assertThat(JSON.parse(httpBody).data[0].custom_data.value).isEqualTo("12");
 - name: On receiving 'content_ids' with different formats, Tag transforms it to an Array of Strings
   code: |-
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = ["id_1","id_2"];
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    function clearContentSources(m) { m.contents = null; m.items = null; m.line_items = null; }
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["id_1","id_2"]);
+    run(m => { clearContentSources(m); m.content_ids = ["id_1","id_2"]; });
+    assertThat(customData().content_ids).isEqualTo(["id_1","id_2"]);
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = [1, 2, 3];
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    run(m => { clearContentSources(m); m.content_ids = [1, 2, 3]; });
+    assertThat(customData().content_ids).isEqualTo(["1","2","3"]);
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","2","3"]);
+    run(m => { clearContentSources(m); m.content_ids = ["1", 2.5, "3.10"]; });
+    assertThat(customData().content_ids).isEqualTo(["1","2.5","3.10"]);
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = ["1", 2.5, "3.10"];
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    run(m => { clearContentSources(m); m.content_ids = "[1 , 2.5, 3]"; });
+    assertThat(customData().content_ids).isEqualTo(["1","2.5","3"]);
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","2.5","3.10"]);
+    run(m => { clearContentSources(m); m.content_ids = "[\"1\" , 2.5, \"3\"]"; });
+    assertThat(customData().content_ids).isEqualTo(["1","2.5","3"]);
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = "[1 , 2.5, 3]";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    run(m => { clearContentSources(m); m.content_ids = "[1 , , 3]"; });
+    assertThat(customData().content_ids).isEqualTo(["1","3"]);
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","2.5","3"]);
+    run(m => { clearContentSources(m); m.content_ids = "  "; });
+    assertThat(customData().content_ids).isEqualTo([]);
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = "[\"1\" , 2.5, \"3\"]";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    run(m => { clearContentSources(m); m.content_ids = ""; });
+    assertThat(customData().content_ids).isEqualTo([]);
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","2.5","3"]);
-
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = "[1 , , 3]";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
-
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo(["1","3"]);
-    
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = "  ";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
-
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isEqualTo([]);
-
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = "";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
-
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isUndefined();
-
-
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.content_ids = null;
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
-
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.content_ids).isUndefined();
+    run(m => { clearContentSources(m); m.content_ids = null; });
+    assertThat(customData().content_ids).isEqualTo([]);
 - name: On receiving 'contents' with different formats, Tag transforms it to a valid Json object if feasible
   code: |-
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = [{"id":"value"}];
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    run(m => m.contents = [{"id":"value"}]);
+    assertThat(customData().contents).isEqualTo([{"id":"value"}]);
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"value"}]);
+    run(m => m.contents = ["id_1","id_2"]);
+    assertThat(customData().contents).isEqualTo(["id_1","id_2"]);
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = ["id_1","id_2"];
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    // Array-of-strings JSON string is not a strict array-of-objects, so it is dropped
+    run(m => m.contents = "[\"id_1\",\"id_2\"]");
+    assertThat(customData().contents).isUndefined();
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo(["id_1","id_2"]);
+    run(m => m.contents = "[{\"id_1\":\"value_1\"},{\"id_2\":\"value_2\"}]");
+    assertThat(customData().contents).isEqualTo([{"id_1":"value_1"},{"id_2":"value_2"}]);
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = "[\"id_1\",\"id_2\"]";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    run(m => m.contents = [{"id":"id01","item_price":"12.4","quantity":12}]);
+    assertThat(customData().contents).isEqualTo([{"id":"id01","item_price":"12.4","quantity":12}]);
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo("[\"id_1\",\"id_2\"]");
+    run(m => m.contents = "[{\"id\":\"id01\",\"item_price\":\"12.4\",\"quantity\":12}]");
+    assertThat(customData().contents).isEqualTo([{"id":"id01","item_price":"12.4","quantity":12}]);
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = "[{\"id_1\":\"value_1\"},{\"id_2\":\"value_2\"}]";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    run(m => m.contents = "");
+    assertThat(customData().contents).isUndefined();
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id_1":"value_1"},{"id_2":"value_2"}]);
+    run(m => m.contents = null);
+    assertThat(customData().contents).isUndefined();
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = [{"id":"id01","item_price":"12.4","quantity":12}];
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    // Whitespace-only string does not parse to an array, so it is dropped
+    run(m => m.contents = " ");
+    assertThat(customData().contents).isUndefined();
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"id01","item_price":"12.4","quantity":12}]);
+    // Surrounding whitespace around a strict array-of-objects is parsed
+    run(m => m.contents = " [{\"id\":\"x\"}] ");
+    assertThat(customData().contents).isEqualTo([{"id":"x"}]);
 
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = "[{\"id\":\"id01\",\"item_price\":\"12.4\",\"quantity\":12}]";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
+    // Malformed JSON (unquoted keys) does not parse to an array, so it is dropped
+    run(m => m.contents = "[{id:\"x\"}]");
+    assertThat(customData().contents).isUndefined();
 
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"id01","item_price":"12.4","quantity":12}]);
-
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = "";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
-
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isUndefined();
-
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = null;
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
-
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isUndefined();
-
-    // Act
-    mock('getAllEventData', () => {
-      inputEventModel.contents = " ";
-      return inputEventModel;
-    });
-    runCode(testConfigurationData);
-
-    //Assert
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo(" ");
+    // Array containing only an empty object is parsed
+    run(m => m.contents = "[{}]");
+    assertThat(customData().contents).isEqualTo([{}]);
 - name: On receiving 'items' from GA4 event, Tag parses them into 'contents' for cAPI
   code: |
     // Act
@@ -2042,50 +2050,53 @@ scenarios:
 
     //Assert
     assertThat(JSON.parse(httpBody).data[0].custom_data.contents).isEqualTo([{"id":"5","item_price":"0","quantity":2},{"id":"item_01","item_price":"12.5","quantity":3}]);
-- name: On receiving 'items' from GA4 event, Tag parses them into 'content_ids', 'contents' and 'num_items' for cAPI
+- name: On receiving 'order_id' as integer, Tag converts it to String format
   code: |
     // Act
-    let items = [
-      {
-        item_id: '1',
-        item_name: 'item_1',
-        quantity: 5,
-        price: 123.45,
-        item_category: 'cat_1',
-        item_brand: 'brand_1',
-      },
-      {
-        item_id: '2',
-        item_name: 'item_2',
-        quantity: 10,
-        price: 123.45,
-        item_category: 'cat_2',
-        item_brand: 'brand_2',
-      }
-    ];
     mock('getAllEventData', () => {
-      inputEventModel.contents = null;
-      inputEventModel.content_ids = null;
-      inputEventModel.num_items = null;
-      inputEventModel.items = items;
+      inputEventModel.order_id = 12345;
       return inputEventModel;
     });
     runCode(testConfigurationData);
 
     //Assert
-    let actual_contents = JSON.parse(httpBody).data[0].custom_data.contents;
-    let actual_content_ids = JSON.parse(httpBody).data[0].custom_data.content_ids;
-    for( var i = 0; i < items.length; i++) {
-      // contents
-      assertThat(actual_contents[i].id).isEqualTo(makeString(items[i].item_id));
-      assertThat(actual_contents[i].item_price).isEqualTo(makeString(items[i].price));
-      assertThat(actual_contents[i].quantity).isEqualTo(makeInteger(items[i].quantity));
-      // content_ids
-      assertThat(actual_content_ids[i]).isEqualTo(makeString((items[i].item_id) ? items[i].item_id : items[i].item_name));
+    assertThat(JSON.parse(httpBody).data[0].custom_data.order_id).isEqualTo("12345");
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.order_id = '12345';
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.order_id).isEqualTo("12345");
+
+    // Act
+    mock('getAllEventData', () => {
+      inputEventModel.order_id = 0;
+      return inputEventModel;
+    });
+    runCode(testConfigurationData);
+
+    //Assert
+    assertThat(JSON.parse(httpBody).data[0].custom_data.order_id).isUndefined();
+- name: On receiving 'items' from GA4 event, Tag parses them into 'content_ids', 'contents' and 'num_items' for cAPI
+  code: |
+    // Multi-item array also derives content_ids and num_items
+    let items = [
+      {item_id: '1', item_name: 'item_1', quantity: 5, price: 123.45, item_category: 'cat_1', item_brand: 'brand_1'},
+      {item_id: '2', item_name: 'item_2', quantity: 10, price: 123.45, item_category: 'cat_2', item_brand: 'brand_2'}
+    ];
+    run(m => { m.contents = null; m.content_ids = null; m.num_items = null; m.items = items; });
+    let cd = customData();
+    for (var i = 0; i < items.length; i++) {
+      assertThat(cd.contents[i].id).isEqualTo(makeString(items[i].item_id));
+      assertThat(cd.contents[i].item_price).isEqualTo(makeString(items[i].price));
+      assertThat(cd.contents[i].quantity).isEqualTo(makeInteger(items[i].quantity));
+      assertThat(cd.content_ids[i]).isEqualTo(makeString((items[i].item_id) ? items[i].item_id : items[i].item_name));
     }
-    // num_items
-    let actual_num_items = JSON.parse(httpBody).data[0].custom_data.num_items;
-    assertThat(JSON.parse(httpBody).data[0].custom_data.contents.length).isEqualTo(items.length);
+    assertThat(cd.contents.length).isEqualTo(items.length);
 - name: On receiving new standard event names, Tag maps them to the correct Pinterest event names
   code: |-
     const newEventMappings = [
@@ -2189,6 +2200,195 @@ scenarios:
       runCode(config);
       assertThat(JSON.parse(httpBody).data[0].event_name).isEqualTo(eventName);
     }
+- name: Tag translates 'line_items' into 'contents', 'content_ids' and 'num_items' across formats and 'contents' wins when both present
+  code: |
+    function clear(m) { m.contents = null; m.content_ids = null; m.num_items = null; m.items = null; m.line_items = null; }
+
+    // Sub-case 1: structured array - two items, variant fields dropped
+    run(m => {
+      clear(m);
+      m.line_items = [
+        {product_id: 'prod_1', product_name: 'Red Shoes', product_category: 'footwear', product_variant_id: 'var_1', product_variant: 'size-10', product_price: '59.99', product_quantity: '2', product_brand: 'nike'},
+        {product_id: 'prod_2', product_name: 'Blue Hat', product_category: 'accessories', product_price: '19.99', product_quantity: '1', product_brand: 'adidas'}
+      ];
+    });
+    let cd = customData();
+    assertThat(cd.contents.length).isEqualTo(2);
+    assertThat(cd.contents[0].id).isEqualTo('prod_1');
+    assertThat(cd.contents[0].item_name).isEqualTo('Red Shoes');
+    assertThat(cd.contents[0].item_category).isEqualTo('footwear');
+    assertThat(cd.contents[0].item_price).isEqualTo('59.99');
+    assertThat(cd.contents[0].quantity).isEqualTo(2);
+    assertThat(cd.contents[0].item_brand).isEqualTo('nike');
+    assertThat(cd.contents[0].product_variant_id).isUndefined();
+    assertThat(cd.contents[0].product_variant).isUndefined();
+    assertThat(cd.contents[1].id).isEqualTo('prod_2');
+    assertThat(cd.contents[1].item_name).isEqualTo('Blue Hat');
+    assertThat(cd.contents[1].item_category).isEqualTo('accessories');
+    assertThat(cd.contents[1].item_price).isEqualTo('19.99');
+    assertThat(cd.contents[1].quantity).isEqualTo(1);
+    assertThat(cd.contents[1].item_brand).isEqualTo('adidas');
+    assertThat(cd.content_ids).isEqualTo(['prod_1', 'prod_2']);
+    assertThat(cd.num_items).isEqualTo(3);
+
+    // Sub-case 2: stringified line_items translates successfully
+    run(m => {
+      clear(m);
+      m.line_items = "[{\"product_id\":\"prod_1\",\"product_name\":\"Red Shoes\",\"product_category\":\"footwear\",\"product_price\":\"59.99\",\"product_quantity\":\"2\",\"product_brand\":\"nike\"}]";
+    });
+    cd = customData();
+    assertThat(cd.contents.length).isEqualTo(1);
+    assertThat(cd.contents[0].id).isEqualTo('prod_1');
+    assertThat(cd.contents[0].item_price).isEqualTo('59.99');
+    assertThat(cd.content_ids).isEqualTo(['prod_1']);
+    assertThat(cd.num_items).isEqualTo(2);
+
+    // Sub-case 3: malformed stringified line_items - skipped, no derived fields
+    run(m => {
+      clear(m);
+      m.line_items = "[{product_id:\"prod_1\",product_price:\"59.99\"}]";
+    });
+    cd = customData();
+    assertThat(cd.contents).isUndefined();
+    assertThat(cd.content_ids).isEqualTo([]);
+    assertThat(cd.num_items).isUndefined();
+
+    // Sub-case 4: pre-existing contents wins over line_items
+    run(m => {
+      clear(m);
+      m.contents = [{"id":"existing","item_price":"1.00","quantity":1}];
+      m.line_items = [{product_id: 'should_not_appear', product_price: '99.99', product_quantity: '5'}];
+    });
+    assertThat(customData().contents).isEqualTo([{"id":"existing","item_price":"1.00","quantity":1}]);
+- name: Tag merges per-field, filling missing 'contents'/'content_ids'/'num_items' from 'items' or 'line_items' without clobbering existing values
+  code: |
+    function clear(m) { m.contents = null; m.content_ids = null; m.num_items = null; m.items = null; m.line_items = null; }
+
+    // Sub-case 1: eventModel.contents is set; content_ids and num_items come from contents
+    run(m => {
+      clear(m);
+      m.contents = [{"id":"explicit","item_price":"5.00","quantity":1}];
+      m.items = [
+        {item_id: 'item_a', price: 1.0, quantity: 1},
+        {item_id: 'item_b', price: 2.0, quantity: 2}
+      ];
+    });
+    let cd = customData();
+    assertThat(cd.contents).isEqualTo([{"id":"explicit","item_price":"5.00","quantity":1}]);
+    assertThat(cd.content_ids).isEqualTo(['explicit']);
+    assertThat(cd.num_items).isEqualTo(1);
+
+    // Sub-case 2: stringified sources are normalized and contents still wins
+    run(m => {
+      clear(m);
+      m.contents = "[{\"id\":\"explicit_from_string\",\"item_price\":\"4.00\",\"quantity\":4}]";
+      m.items = "[{\"item_id\":\"item_from_string\",\"price\":5,\"quantity\":6}]";
+      m.line_items = "[{\"product_id\":\"prod_from_string\",\"product_price\":\"7.00\",\"product_quantity\":\"8\"}]";
+    });
+    cd = customData();
+    assertThat(cd.contents).isEqualTo([{"id":"explicit_from_string","item_price":"4.00","quantity":4}]);
+    assertThat(cd.content_ids).isEqualTo(['explicit_from_string']);
+    assertThat(cd.num_items).isEqualTo(4);
+
+    // Sub-case 3: items takes precedence over line_items per field when both are present and the eventModel field is missing
+    run(m => {
+      clear(m);
+      m.items = [{item_id: 'from_items', price: 1.0, quantity: 1}];
+      m.line_items = [{product_id: 'from_line_items', product_price: '9.99', product_quantity: '9'}];
+    });
+    cd = customData();
+    assertThat(cd.contents).isEqualTo([{"id":"from_items","item_price":"1","quantity":1}]);
+    assertThat(cd.content_ids).isEqualTo(['from_items']);
+    assertThat(cd.num_items).isEqualTo(1);
+
+    // Sub-case 4: malformed contents is dropped, so line_items supplies derived fields
+    run(m => {
+      clear(m);
+      m.contents = "[{id:\"x\"}]";
+      m.line_items = [{product_id: 'from_line_items', product_name: 'Richer Item', product_price: '19.99', product_quantity: '7'}];
+    });
+    cd = customData();
+    assertThat(cd.contents.length).isEqualTo(1);
+    assertThat(cd.contents[0].id).isEqualTo('from_line_items');
+    assertThat(cd.content_ids).isEqualTo(['from_line_items']);
+    assertThat(cd.num_items).isEqualTo(7);
+
+    // Sub-case 5: empty content_ids derived from contents falls back to items when lengths align
+    run(m => {
+      clear(m);
+      m.contents = [{"item_name":"missing_id_1"},{"item_name":"missing_id_2"}];
+      m.items = [
+        {item_id: 'fallback_item_1', price: 1.0, quantity: 1},
+        {item_id: 'fallback_item_2', price: 2.0, quantity: 1}
+      ];
+    });
+    cd = customData();
+    assertThat(cd.contents).isEqualTo([{"item_name":"missing_id_1"},{"item_name":"missing_id_2"}]);
+    assertThat(cd.content_ids).isEqualTo(['fallback_item_1','fallback_item_2']);
+    assertThat(cd.num_items).isEqualTo(2);
+
+    // Sub-case 6: if all derived content_ids are empty/mismatched against contents length, content_ids stays []
+    run(m => {
+      clear(m);
+      m.contents = [{"id":"only_one"},{"item_name":"missing_id"}];
+      m.items = [{item_id: 'items_only_one', price: 1.0, quantity: 1}];
+      m.line_items = [{product_id: 'line_only_one', product_price: '1.00', product_quantity: '1'}];
+    });
+    cd = customData();
+    assertThat(cd.contents).isEqualTo([{"id":"only_one"},{"item_name":"missing_id"}]);
+    assertThat(cd.content_ids).isEqualTo([]);
+    assertThat(cd.num_items).isEqualTo(2);
+- name: Custom Data overrides translate 'line_items' to derived fields and 'contents' wins when both are overridden
+  code: |
+    mock('getAllEventData', () => {
+      inputEventModel.contents = [{"id":"source","item_price":"1.00","quantity":1}];
+      inputEventModel.content_ids = ["source"];
+      inputEventModel.num_items = 1;
+      inputEventModel.items = null;
+      inputEventModel.line_items = null;
+      return inputEventModel;
+    });
+
+    // Sub-case 1: override only line_items - translated, line_items dropped from payload
+    runOverride([
+      {name: "line_items", value: "[{\"product_id\":\"ov_1\",\"product_name\":\"Override Shoes\",\"product_category\":\"footwear\",\"product_price\":\"49.99\",\"product_quantity\":\"3\",\"product_brand\":\"puma\"}]"}
+    ]);
+    let cd = customData();
+    assertThat(cd.contents.length).isEqualTo(1);
+    assertThat(cd.contents[0].id).isEqualTo('ov_1');
+    assertThat(cd.contents[0].item_name).isEqualTo('Override Shoes');
+    assertThat(cd.contents[0].item_category).isEqualTo('footwear');
+    assertThat(cd.contents[0].item_price).isEqualTo('49.99');
+    assertThat(cd.contents[0].quantity).isEqualTo(3);
+    assertThat(cd.contents[0].item_brand).isEqualTo('puma');
+    assertThat(cd.content_ids).isEqualTo(['ov_1']);
+    assertThat(cd.num_items).isEqualTo(3);
+    assertThat(cd.line_items).isUndefined();
+
+    // Sub-case 2: override both - contents wins, line_items still dropped
+    runOverride([
+      {name: "line_items", value: "[{\"product_id\":\"line_item\",\"product_price\":\"99.99\",\"product_quantity\":\"5\"}]"},
+      {name: "contents", value: "[{\"id\":\"override\",\"item_price\":\"2.00\",\"quantity\":2}]"},
+      {name: "content_ids", value: "[\"override_id\"]"},
+      {name: "num_items", value: "7"}
+    ]);
+    cd = customData();
+    assertThat(cd.contents).isEqualTo([{"id":"override","item_price":"2.00","quantity":2}]);
+    assertThat(cd.content_ids).isEqualTo(["override_id"]);
+    assertThat(cd.num_items).isEqualTo(7);
+    assertThat(cd.line_items).isUndefined();
+
+    // Sub-case 3: overridden content_ids can intentionally differ from derived ids
+    runOverride([
+      {name: "line_items", value: "[{\"product_id\":\"line_item_2\",\"product_price\":\"15.00\",\"product_quantity\":\"4\"}]"},
+      {name: "contents", value: "[{\"id\":\"contents_id\",\"item_price\":\"3.00\",\"quantity\":3}]"},
+      {name: "content_ids", value: "[\"manual_id_a\",\"manual_id_b\"]"}
+    ]);
+    cd = customData();
+    assertThat(cd.contents).isEqualTo([{"id":"contents_id","item_price":"3.00","quantity":3}]);
+    assertThat(cd.content_ids).isEqualTo(["manual_id_a","manual_id_b"]);
+    assertThat(cd.num_items).isEqualTo(3);
+    assertThat(cd.line_items).isUndefined();
 - name: On selecting custom_event in pinterestEventName mode, Tag uses the ADE custom event name
   code: |-
     // When eventNameStandard is 'custom_event', the tag should use adeEventName
@@ -2380,6 +2580,30 @@ setup: |-
     actualSuccessCallback(200, {}, '');
   });
 
+  // Test helpers shared across scenarios
+  function run(setupFn) {
+    if (setupFn) {
+      mock('getAllEventData', () => {
+        setupFn(inputEventModel);
+        return inputEventModel;
+      });
+    }
+    runCode(testConfigurationData);
+  }
+  function customData() {
+    return JSON.parse(httpBody).data[0].custom_data;
+  }
+  function runOverride(customDataList) {
+    runCode({
+      advertiserId: testConfigurationData.advertiserId,
+      apiAccessToken: testConfigurationData.apiAccessToken,
+      eventName: testConfigurationData.eventName,
+      overrideMode: true,
+      serverEventDataList: testConfigurationData.serverEventDataList,
+      customDataList: customDataList
+    });
+  }
+
 
 ___NOTES___
 
@@ -2391,4 +2615,4 @@ Mirko J. Rodriguez Mallma <mrodriguezmallma@pinterest.com>
 John Abdou <jabdou@pinterest.com>
 
 Created on 6/2/2022, 4:47:28 PM
-Updated on 3/4/2026, 12:00:00 PM
+Updated on 5/5/2026, 12:00:00 PM
