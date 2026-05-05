@@ -2,9 +2,11 @@ homepage: "https://help.pinterest.com/en/business/article/the-pinterest-api-for-
 documentation: "https://developers.pinterest.com/docs/conversions/3rd-party-api-integrations/#Google%20Tag%20Manager%20Server-side%20Tagging"
 versions:
   # Latest version
+- sha: ecefe4c8808da9791f557afe39c68520ef6c4342
+  changeNotes: Add order_id int support and line_items translation
+  # Older versions
 - sha: ed3e7975373570b7299ece8004575e9ecaf6a557
   changeNotes: Add 8 new standard events and custom events
-  # Older versions
 - sha: 00c4c4653655507a886efbc4ba4c0baa4fc54c80
   changeNotes: Add support for predicted_ltv.
 - sha: c1a5263a79f50aa267049fee6dda7e194081b1fc
